@@ -15,8 +15,8 @@ conversation_history = "Chat Bot's Persona: A chat bot. Very cool personality an
 print("\nStarting Chat. 'q' to quit\n")
 
 # Starts main loop that you can break with 'q'
+print("Chat Bot: Lets Chat. Whats new with you?")
 while True:
-    print("Chat Bot: Lets Chat. Whats new with you?")
     try:
         user_input = input("You: ")
         if user_input != "q":
