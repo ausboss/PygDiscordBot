@@ -3,10 +3,18 @@
 import discord
 import requests
 import json
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+ENDPOINT = os.getenv("ENDPOINT")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
+
 # Initialize the discord client
 intents = discord.Intents.default()
 intents.messages = True
-CHANNEL_ID = "#######channel ID goes here######"
+
 client = discord.Client(intents=intents)
 debug = False
 
@@ -62,7 +70,7 @@ async def on_message(message):
     if debug:
         print(json.dumps(prompt, indent=4))
     # Send a post request to the API endpoint
-    response = requests.post(f"{endpoint}/api/v1/generate", json=prompt)
+    response = requests.post(f"{ENDPOINT}/api/v1/generate", json=prompt)
     # Check if the request was successful
     if response.status_code == 200:
         # Get the results from the response

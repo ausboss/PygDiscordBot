@@ -1,0 +1,10 @@
+.venv
+.env
+*.pyc
+*.swp
+*.egg-info
+__pycache__
+.DS_Store
+.idea
+# Generated files
+backend/oasst-openapi.json
