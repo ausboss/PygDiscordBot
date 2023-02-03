@@ -13,3 +13,6 @@ look for this url in the google collab output:
 Example:
 
 ![Example](https://i.imgur.com/CL2n0kN.png)
+
+# Discord Tavern Style Pygmalion Chatbot WIP
+Change the variables in the sample.env file with your info and save it as .env
