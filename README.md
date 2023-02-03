@@ -1,5 +1,5 @@
 # Discord Tavern Style Pygmalion Chatbot WIP
-Originally this github was going to be just a starter project for people to use to make their own python based chatbots but now I'm just going to use it for a discord bot.
+Originally this github repo was going to be just a starter project for people to use to make their own python based chatbots but now I'm just going to use it for a discord bot.
 
 Change the variables in the sample.env file with your info and save it as .env
 
