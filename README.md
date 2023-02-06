@@ -1,5 +1,11 @@
-# Discord Tavern Style Pygmalion Chatbot WIP
+# Discord Tavern Style Pygmalion Chatbot
+This is a discord bot that uses Pygmalion-6B and a KoboldAI url  The bot uses the name that you choose for it in the developer portal and the persona you set in the .env file. 
 
+![Preview](https://i.imgur.com/XcIDQ3V.png)
+
+
+# ToDo: 
+Clone the repot.
 Change the variables in the sample.env file with your bot token info and save it as .env then run the bat file.
 
 DISORD_BOT_TOKEN: You can get this from the discord developers portal. [Guide for setting that up](https://rentry.org/discordbotguide)
@@ -12,6 +18,4 @@ Look for this url in the google collab output:
 
 PERSONA= A brief description about your bots personality.
 
-Preview:
 
-![Preview](https://i.imgur.com/XcIDQ3V.png)
