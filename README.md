@@ -1,5 +1,5 @@
 # Discord Tavern Style Pygmalion Chatbot
-This is a discord bot that uses Pygmalion-6B and a KoboldAI url. The bot uses the name that you choose for it in the developer portal and the persona you set in the .env file. 
+This is a discord bot that uses Pygmalion-6B and a KoboldAI url. The bot uses the name that you choose for it in the developer portal and the persona you set in the .env file. I plan on adding more features like group chat support, random messages, and the ability to comment on images you share.
 
 ![Preview](https://i.imgur.com/XcIDQ3V.png)
 
