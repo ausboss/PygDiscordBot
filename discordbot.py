@@ -16,7 +16,7 @@ DEBUG = True
 intents = discord.Intents.default()
 intents.messages = True
 client = discord.Client(intents=intents)
-
+BOT_NAME = ""
 BOT_PERSONALITY = BOT_NAME + "'s Persona: A virtual AI partner. Loving, caring, and always willing to make you happy.\n"
 CONVERSATION_HISTORY = ""
 @client.event
