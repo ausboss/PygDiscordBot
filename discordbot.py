@@ -10,7 +10,6 @@ DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 ENDPOINT = os.getenv("ENDPOINT")
 BOT_NAME = os.getenv("BOT_NAME")
 PERSONA = os.getenv("PERSONA")
-
 # set to True if you want various data printed to the console for debugging
 DEBUG = True
 # Initialize the discord client
@@ -25,6 +24,9 @@ async def on_ready():
     global BOT_NAME
     BOT_NAME = client.user.name
     print(f'{client.user.name} has connected to Discord!')
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="for your messages"))
+
+    # await client.change_presence(activity=activity)
 
 @client.event
 async def on_message(message):
@@ -34,7 +36,7 @@ async def on_message(message):
     BOT_PERSONALITY = BOT_NAME + f"'s Persona: {PERSONA}\n"
     message_text = message.content
     if DEBUG:
-        print(f"message sent:{message_text}")
+        print(f"{client.user}:{message_text}")
     CONVERSATION_HISTORY += f"You: {message_text}\n"
     # Add the user input to the conversation history
     # Define the prompt
