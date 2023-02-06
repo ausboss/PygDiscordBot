@@ -17,7 +17,7 @@ intents = discord.Intents.default()
 intents.messages = True
 client = discord.Client(intents=intents)
 BOT_NAME = ""
-BOT_PERSONALITY = BOT_NAME + "'s Persona: A virtual AI partner. Loving, caring, and always willing to make you happy.\n"
+
 CONVERSATION_HISTORY = ""
 @client.event
 async def on_ready():
@@ -30,6 +30,7 @@ async def on_message(message):
     if message.author == client.user:
         return
     global CONVERSATION_HISTORY
+    BOT_PERSONALITY = BOT_NAME + "'s Persona: A virtual AI partner. Loving, caring, and always willing to make you happy.\n"
     message_text = message.content
     if DEBUG:
         print(f"message sent:{message_text}")
@@ -75,7 +76,7 @@ async def on_message(message):
                 print(result['text'])
                 response_text = result['text'].split("\n")[0]
                 if DEBUG:
-                    print(f"response text: {response_text[len(BOT_NAME)+2:]}")
+                    print(f"response text: {response_text}")
                 await message.channel.send(response_text[len(BOT_NAME)+2:])
                 CONVERSATION_HISTORY += f'{response_text}\n'
 
