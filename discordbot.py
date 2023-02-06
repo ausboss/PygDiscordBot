@@ -9,6 +9,7 @@ load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 ENDPOINT = os.getenv("ENDPOINT")
 BOT_NAME = os.getenv("BOT_NAME")
+PERSONA = os.getenv("PERSONA")
 
 # set to True if you want various data printed to the console for debugging
 DEBUG = True
@@ -30,7 +31,7 @@ async def on_message(message):
     if message.author == client.user:
         return
     global CONVERSATION_HISTORY
-    BOT_PERSONALITY = BOT_NAME + "'s Persona: A virtual AI partner. Loving, caring, and always willing to make you happy.\n"
+    BOT_PERSONALITY = BOT_NAME + f"'s Persona: {PERSONA}\n"
     message_text = message.content
     if DEBUG:
         print(f"message sent:{message_text}")
