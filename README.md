@@ -9,3 +9,8 @@ look for this url in the google collab output:
 
 ![url example](https://raytracing-benchmarks.are-really.cool/5utGhMj.png)
 
+PERSONA= A brief description about your bots personality.
+
+Preview:
+
+![Preview](https://i.imgur.com/XcIDQ3V.png)
