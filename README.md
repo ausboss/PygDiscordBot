@@ -4,7 +4,7 @@ This is a discord bot that uses Pygmalion-6B and a KoboldAI url. The bot uses th
 ![Preview](https://i.imgur.com/XcIDQ3V.png)
 
 
-# Todo: 
+# To do: 
 >1. Clone the repo.
 
 >2. Change the variables in the sample.env file and save it as .env in the same folder
