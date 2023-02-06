@@ -8,3 +8,4 @@ __pycache__
 .idea
 # Generated files
 backend/oasst-openapi.json
+.env

@@ -21,7 +21,9 @@ BOT_PERSONALITY = BOT_NAME + "'s Persona: A virtual AI partner. Loving, caring, 
 CONVERSATION_HISTORY = ""
 @client.event
 async def on_ready():
-    print(f'{client.user} has connected to Discord!')
+    global BOT_NAME
+    BOT_NAME = client.user.name
+    print(f'{client.user.name} has connected to Discord!')
 
 @client.event
 async def on_message(message):
@@ -75,7 +77,7 @@ async def on_message(message):
                 if DEBUG:
                     print(f"response text: {response_text[len(BOT_NAME)+2:]}")
                 await message.channel.send(response_text[len(BOT_NAME)+2:])
-                CONVERSATION_HISTORY += f'{BOT_NAME}: {response_text}\n'
+                CONVERSATION_HISTORY += f'{response_text}\n'
 
 
     else:
