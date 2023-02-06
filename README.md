@@ -5,9 +5,14 @@ This is a discord bot that uses Pygmalion-6B and a KoboldAI url. The bot uses th
 
 
 # ToDo: 
->Clone the repo.
->Change the variables in the sample.env file and save it as .env in the same folder
->Run the bat file
+>1. Clone the repo.
+
+>2. Change the variables in the sample.env file and save it as .env in the same folder
+
+>3. Run the bat file
+
+
+# More Info: 
 
 DISORD_BOT_TOKEN: You can get this from the discord developers portal. [Guide for setting that up](https://rentry.org/discordbotguide)
 
