@@ -11,6 +11,7 @@ This is a discord bot that uses Pygmalion-6B and a KoboldAI url. The bot uses th
 
 >3. Run the bat file
 
+>4. Choose the character
 
 # More Info: 
 
@@ -21,7 +22,5 @@ ENDPOINT: Set the endpoint variable with the KoboldAI url you get from this [goo
 Look for this url in the google collab output:
 
 ![url example](https://raytracing-benchmarks.are-really.cool/5utGhMj.png)
-
-PERSONA= A brief description about your bots personality.
 
 
