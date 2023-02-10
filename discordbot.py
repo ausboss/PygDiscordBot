@@ -13,7 +13,7 @@ load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 ENDPOINT = os.getenv("ENDPOINT")
 # Replace the client ID and token with your own Discord bot credentials
-DEBUG = True
+DEBUG = False
 
 def upload_character(json_file, img, tavern=False):
     json_file = json_file if type(json_file) == str else json_file.decode('utf-8')
@@ -92,7 +92,33 @@ char_dialogue = data["char_greeting"]
 char_image = data.get("char_image")
 
 
-# Define the number of lines to keep in the conversation history
+def get_prompt(conversation_history):
+    return {
+        "prompt": '\n'.join(conversation_history.split('\n')[-num_lines_to_keep:]) + f'{char_name}:',
+        "use_story": False,
+        "use_memory": False,
+        "use_authors_note": False,
+        "use_world_info": False,
+        "max_context_length": 1818,
+        "max_length": 180,
+        "rep_pen": 1.03,
+        "rep_pen_range": 1024,
+        "rep_pen_slope": 0.9,
+        "temperature": 0.98,
+        "tfs": 0.9,
+        "top_a": 0,
+        "top_k": 0,
+        "top_p": 0.9,
+        "typical": 1,
+        "sampler_order": [
+            6, 0, 1, 2,
+            3, 4, 5
+        ],
+        "frmttriminc": True,
+        "frmtrmblln": True
+    }
+
+first_message = True
 num_lines_to_keep = 20
 intents = discord.Intents.default()
 intents.messages = True
@@ -116,65 +142,50 @@ async def on_ready():
         except:
             pass
     print(f'{client.user} has connected to Discord!')
-
+conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
+                        f"World Scenario: {data['world_scenario']}\n" + \
+                        f'<START>\n' + \
+                        f'{char_dialogue}' + \
+                        f'<START>\n'
 @client.event
 async def on_message(message):
+    global first_message
+    global conversation_history
     if message.author == client.user:
         return
 
-
     # Initialize the conversation history to the starting prompt
-    conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
-                            f"World Scenario: {data['world_scenario']}\n" + \
-                            f'<START>\n' + \
-                            f'{char_dialogue}' + \
-                            f'<START>\n' + \
-                            f"{char_name}: {char_greeting}"
-    conversation_history += f'You: {message.content}\n'
-    # Define the prompt
-    prompt = {
-        "prompt": '\n'.join(conversation_history.split('\n')[-num_lines_to_keep:]) + f'{char_name}:',
-        "use_story": False,
-        "use_memory": False,
-        "use_authors_note": False,
-        "use_world_info": False,
-        "max_context_length": 1818,
-        "max_length": 120,
-        "rep_pen": 1.03,
-        "rep_pen_range": 1024,
-        "rep_pen_slope": 0.9,
-        "temperature": 0.98,
-        "tfs": 0.9,
-        "top_a": 0,
-        "top_k": 0,
-        "top_p": 0.9,
-        "typical": 1,
-        "sampler_order": [
-            6, 0, 1, 2,
-            3, 4, 5
-        ]
-    }
-    print(prompt)
-    # Send a post request to the API endpoint
-    response = requests.post(f"{ENDPOINT}/api/v1/generate", json=prompt)
-    # Check if the request was successful
-    if response.status_code == 200:
-        # Get the results from the response
-        results = response.json()['results']
-    # Print the results for debug
-        if DEBUG:
-            print(results)
-        for result in results:
-            if "\n" in result['text']:
-                print(result['text'])
-                if len(result['text'].split("You:")) > 0:
-                    response_text = result['text'].split("You:")[0].replace(f"{char_name}:", "").strip()
-                else:
-                    response_text = result['text']
-                if DEBUG:
-                    print(f"response text: {response_text}")
-                await message.channel.send(response_text)
-                conversation_history = conversation_history + f'{char_name}: {response_text}\n'
+
+
+    if first_message:
+        first_message = False
+        conversation_history += f"{char_name}: {char_greeting}\n"
+        response_text = char_greeting
+        await message.channel.send(response_text)
+    else:
+        conversation_history += f'You: {message.content}\n'
+        # Get the prompt
+        prompt = get_prompt(conversation_history)
+        # Send a post request to the API endpoint
+        response = requests.post(f"{ENDPOINT}/api/v1/generate", json=prompt)
+        # Check if the request was successful
+        if response.status_code == 200:
+            # Get the results from the response
+            results = response.json()['results']
+        # Print the results for debug
+            if DEBUG:
+                print(results)
+            for result in results:
+                if "\n" in result['text']:
+                    print(result['text'])
+                    if len(result['text'].split("You:")) > 0:
+                        response_text = result['text'].split("You:")[0].replace(f"{char_name}:", "").strip()
+                    else:
+                        response_text = result['text']
+                    if DEBUG:
+                        print(f"response text: {response_text}")
+                    await message.channel.send(response_text)
+                    conversation_history = conversation_history + f'{char_name}: {response_text}\n'
 
 
 client.run(DISCORD_BOT_TOKEN)
