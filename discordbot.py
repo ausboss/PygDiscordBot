@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import base64
 from dotenv import load_dotenv
+from discord.ext import commands
 # get .env variables
 load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
@@ -33,7 +34,6 @@ def upload_character(json_file, img, tavern=False):
         img.save(Path(f'characters/{outfile_name}.png'))
     print(f'New character saved to "characters/{outfile_name}.json".')
     return outfile_name
-
 
 def upload_tavern_character(img, name1, name2):
     _img = Image.open(io.BytesIO(img))
@@ -110,44 +110,52 @@ char_greeting = data["char_greeting"]
 char_dialogue = data["char_greeting"]
 char_image = data.get("char_image")
 
-
-first_message = True
 num_lines_to_keep = 20
 intents = discord.Intents.all()
-client = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix='/', intents=intents)
 conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
                         f"World Scenario: {data['world_scenario']}\n" + \
                         f'<START>\n' + \
                         f'{char_dialogue}' + \
                         f'<START>\n' + \
                         f'f"{char_name}: {char_greeting}\n'
-@client.event
+@bot.event
 async def on_ready():
     try:
         with open(f"Characters/{char_image}", 'rb') as f:
             avatar_data = f.read()
-        await client.user.edit(username=char_name, avatar=avatar_data)
+        await bot.user.edit(username=char_name, avatar=avatar_data)
     except FileNotFoundError:
         with open(f"Characters/default.png", 'rb') as f:
             avatar_data = f.read()
-        await client.user.edit(username=char_name, avatar=avatar_data)
+        await bot.user.edit(username=char_name, avatar=avatar_data)
         print(f"No image found for {char_name}. Setting image to default.")
     except discord.errors.HTTPException as error:
         if error.code == 50035 and 'Too many users have this username, please try another' in error.text:
-            await client.user.edit(username=char_name + "BOT", avatar=avatar_data)
+            await bot.user.edit(username=char_name + "BOT", avatar=avatar_data)
         elif error.code == 50035 and 'You are changing your username or Discord Tag too fast. Try again later.' in error.text:
             pass
         else:
             raise error
-    print(f'{client.user} has connected to Discord!')
-@client.event
+    print(f'{bot.user} has connected to Discord!')
+@bot.command()
+async def reset(ctx):
+    global conversation_history
+    conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
+                            f"World Scenario: {data['world_scenario']}\n" + \
+                            f'<START>\n' + \
+                            f'{char_dialogue}' + \
+                            f'<START>\n' + \
+                            f'f"{char_name}: {char_greeting}\n'
+    await ctx.send("Conversation history has been reset.")
+
+@bot.event
 async def on_message(message):
-    if PERIOD_IGNORE and message.content.startswith("."):
+    if PERIOD_IGNORE and message.content.startswith(".") and not message.content.startswith("/"):
         return
     else:
-        # global first_message
         global conversation_history
-        if message.author == client.user:
+        if message.author == bot.user:
             return
         your_message = message.content
         print(f"{message.author.name}:{your_message}")
@@ -160,4 +168,6 @@ async def on_message(message):
             response_text = split_text(text)[0]
             await message.channel.send(response_text)
             conversation_history = conversation_history + f'{char_name}: {response_text}\n'
-client.run(DISCORD_BOT_TOKEN)
+
+
+bot.run(DISCORD_BOT_TOKEN)
