@@ -10,10 +10,10 @@ import base64
 from dotenv import load_dotenv
 # get .env variables
 load_dotenv()
-# Set the endpoint URL
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 ENDPOINT = os.getenv("ENDPOINT")
-# Replace the client ID and token with your own Discord bot credentials
+# Set this to True if you want messages starting with . to be ignored
+period_ignore = False
 DEBUG = True
 def split_text(text):
     parts = re.split(r'\n[a-zA-Z]', text)
@@ -35,6 +35,8 @@ def upload_character(json_file, img, tavern=False):
         img.save(Path(f'characters/{outfile_name}.png'))
     print(f'New character saved to "characters/{outfile_name}.json".')
     return outfile_name
+
+
 def upload_tavern_character(img, name1, name2):
     _img = Image.open(io.BytesIO(img))
     _img.getexif()
@@ -43,6 +45,30 @@ def upload_tavern_character(img, name1, name2):
     _json = {"char_name": _json['name'], "char_persona": _json['description'], "char_greeting": _json["first_mes"], "example_dialogue": _json['mes_example'], "world_scenario": _json['scenario']}
     _json['example_dialogue'] = _json['example_dialogue'].replace('{{user}}', name1).replace('{{char}}', _json['char_name'])
     return upload_character(json.dumps(_json), img, tavern=True)
+
+def get_prompt(conversation_history, user, text):
+    return {
+        "prompt": conversation_history + f"{user}: {text}\n{char_name}:",
+        "use_story": False,
+        "use_memory": False,
+        "use_authors_note": False,
+        "use_world_info": False,
+        "max_context_length": 1818,
+        "max_length": 180,
+        "rep_pen": 1.03,
+        "rep_pen_range": 1024,
+        "rep_pen_slope": 0.9,
+        "temperature": 0.98,
+        "tfs": 0.9,
+        "top_a": 0,
+        "top_k": 0,
+        "top_p": 0.9,
+        "typical": 1,
+        "sampler_order": [6, 0, 1, 2, 3, 4, 5],
+        "frmttriminc": True,
+        "frmtrmblln": True
+    }
+
 characters_folder = 'Characters'
 cards_folder = 'Cards'
 characters = []
@@ -85,28 +111,7 @@ char_name = data["char_name"]
 char_greeting = data["char_greeting"]
 char_dialogue = data["char_greeting"]
 char_image = data.get("char_image")
-def get_prompt(conversation_history, user, text):
-    return {
-        "prompt": conversation_history + f"{user}: {text}\n{char_name}:",
-        "use_story": False,
-        "use_memory": False,
-        "use_authors_note": False,
-        "use_world_info": False,
-        "max_context_length": 1818,
-        "max_length": 180,
-        "rep_pen": 1.03,
-        "rep_pen_range": 1024,
-        "rep_pen_slope": 0.9,
-        "temperature": 0.98,
-        "tfs": 0.9,
-        "top_a": 0,
-        "top_k": 0,
-        "top_p": 0.9,
-        "typical": 1,
-        "sampler_order": [6, 0, 1, 2, 3, 4, 5],
-        "frmttriminc": True,
-        "frmtrmblln": True
-    }
+
 
 first_message = True
 num_lines_to_keep = 20
@@ -139,19 +144,22 @@ async def on_ready():
     print(f'{client.user} has connected to Discord!')
 @client.event
 async def on_message(message):
-    # global first_message
-    global conversation_history
-    if message.author == client.user:
+    if period_ignore and message.content.startswith("."):
         return
-    your_message = message.content
-    print(f"{message.author.name}:{your_message}")
-    prompt = get_prompt(conversation_history,message.author.name, message.content)
-    print(prompt)
-    response = requests.post(f"{ENDPOINT}/api/v1/generate", json=prompt)
-    if response.status_code == 200:
-        results = response.json()['results']
-        text = results[0]['text']
-        response_text = split_text(text)[0]
-        await message.channel.send(response_text)
-        conversation_history = conversation_history + f'{char_name}: {response_text}\n'
+    else:
+        # global first_message
+        global conversation_history
+        if message.author == client.user:
+            return
+        your_message = message.content
+        print(f"{message.author.name}:{your_message}")
+        prompt = get_prompt(conversation_history,message.author.name, message.content)
+        print(prompt)
+        response = requests.post(f"{ENDPOINT}/api/v1/generate", json=prompt)
+        if response.status_code == 200:
+            results = response.json()['results']
+            text = results[0]['text']
+            response_text = split_text(text)[0]
+            await message.channel.send(response_text)
+            conversation_history = conversation_history + f'{char_name}: {response_text}\n'
 client.run(DISCORD_BOT_TOKEN)
