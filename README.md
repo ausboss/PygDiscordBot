@@ -14,6 +14,9 @@ This is a discord bot that uses Pygmalion-6B and a KoboldAI url. The bot now sup
 >4. Choose the character
 
 ![Choose](https://i.imgur.com/qY6ZpB8.png)
+
+
+[Get more Characters](https://booru.plus/+pygmalion)
 # More Info: 
 
 DISORD_BOT_TOKEN: You can get this from the discord developers portal. [Guide for setting that up](https://rentry.org/discordbotguide)
