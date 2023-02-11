@@ -15,6 +15,7 @@ This is a discord bot that uses Pygmalion-6B and a KoboldAI url. The bot now sup
 
 ![Choose](https://i.imgur.com/qY6ZpB8.png)
 
+Discord only allows bots to be renamed twice per hour.
 
 [Get more Characters](https://booru.plus/+pygmalion)
 # More Info: 
