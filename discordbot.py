@@ -13,9 +13,6 @@ load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 ENDPOINT = os.getenv("ENDPOINT")
 PERIOD_IGNORE = os.getenv("PERIOD_IGNORE")
-# Set this to True if you want messages starting with . to be ignored
-
-DEBUG = True
 def split_text(text):
     parts = re.split(r'\n[a-zA-Z]', text)
     return parts
