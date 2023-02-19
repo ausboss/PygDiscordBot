@@ -152,8 +152,6 @@ bot = commands.Bot(command_prefix='/', intents=intents)
 conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
                         f"Scenario: {data['world_scenario']}\n" + \
                         f'<START>\n' + \
-                        f'{char_dialogue}' + \
-                        f'<START>\n' + \
                         f'f"{char_name}: {char_greeting}\n'
 starting_dialogue = char_greeting.replace("{", "").replace("}", "").replace("'", "")
 @bot.event
@@ -202,7 +200,7 @@ async def on_message(message):
         if SAVE_CHATS:
             with open("Logs/chat_logs.txt", "a") as file:
                 file.write(f"You:{your_message}\n")
-        print(f"{message.author.name}:{your_message}")
+        print(f"{message.author.nickname}:{your_message}")
         prompt = get_prompt(conversation_history,message.author.name, message.content)
         print(prompt)
         response = requests.post(f"{ENDPOINT}/api/v1/generate", json=prompt)
