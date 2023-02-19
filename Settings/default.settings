@@ -1,11 +1,11 @@
 {
 	"max_length": 1818,
-	"genamt": 60,
+	"genamt": 100,
 	"ikgen": 200,
 	"rep_pen": 1.01,
 	"rep_pen_slope": 0.9,
 	"rep_pen_range": 1024,
-	"temp": 1.0,
+	"temp": 1.15,
 	"top_p": 0.9,
 	"top_k": 40,
 	"top_a": 0.0,
