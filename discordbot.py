@@ -198,8 +198,8 @@ async def on_message(message):
         if SAVE_CHATS:
             with open("Logs/chat_logs.txt", "a") as file:
                 file.write(f"You:{your_message}\n")
-        print(f"{message.author.nickname}:{your_message}")
-        prompt = get_prompt(conversation_history,message.author.name, message.content)
+        print(f"{message.author.nick}:{your_message}")
+        prompt = get_prompt(conversation_history,message.author.nick, message.content)
         print(prompt)
         response = requests.post(f"{ENDPOINT}/api/v1/generate", json=prompt)
         if response.status_code == 200:
@@ -211,6 +211,6 @@ async def on_message(message):
                     file.write(f'{char_name}: {response_text}\n')
             conversation_history = conversation_history + f'{char_name}: {response_text}\n'
             response_text = response_text.replace(char_name+":", "")
-            await message.channel.send(response_text)
+            await message.reply(response_text)
 
 bot.run(DISCORD_BOT_TOKEN)
