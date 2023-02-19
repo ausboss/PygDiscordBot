@@ -184,8 +184,6 @@ async def reset(ctx):
     conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
                             f"Scenario: {data['world_scenario']}\n" + \
                             f'<START>\n' + \
-                            f'{char_dialogue}' + \
-                            f'<START>\n' + \
                             f'f"{char_name}: {char_greeting}\n'
     await ctx.send("Conversation history has been reset.")
 @bot.event
