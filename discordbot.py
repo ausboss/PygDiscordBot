@@ -178,7 +178,7 @@ async def on_ready():
     channel = bot.get_channel(int(CHANNEL_ID))
     if SEND_GREETING and not os.path.exists('Logs/chat_logs.txt') :
         await channel.send(char_greeting)
-    elif SEND_GREETING:
+    elif SEND_GREETING and not SAVE_CHATS:
         await channel.send(char_greeting)
 @bot.command()
 async def reset(ctx):
