@@ -17,6 +17,30 @@ ENDPOINT = os.getenv("ENDPOINT")
 PERIOD_IGNORE = os.getenv("PERIOD_IGNORE")
 SAVE_CHATS = os.getenv("SAVE_CHATS")
 SEND_GREETING = os.getenv("SEND_GREETING")
+def keyword_scan(response_text):
+    # Define a dictionary with keywords and their corresponding gifs
+    keywords = {
+        "blush": "https://tenor.com/view/aqua-gif-20916837",
+        "turns red": "https://tenor.com/view/aqua-gif-20916837",
+        "happy": "https://tenor.com/view/aqua-konosuba-run-happy-gif-25524370",
+        "happily": "https://tenor.com/view/aqua-konosuba-run-happy-gif-25524370",
+        "smile": "https://tenor.com/view/aqua-konosuba-kono-subarashii-sekai-ni-anime-smile-gif-22387157",
+        "angr": "https://tenor.com/view/konosuba-aqua-mad-gif-20769953",
+        "cry": "https://tenor.com/view/anime-konosuba-sad-pout-aqua-gif-12069252",
+        "sad": "https://tenor.com/view/anime-konosuba-sad-pout-aqua-gif-12069252",
+        "embarass": "https://tenor.com/view/aqua-shy-kono-subarashii-sekai-ni-shukufuku-wo-konosuba-anime-gif-17046393",
+        "nervous": "https://tenor.com/view/aqua-shy-kono-subarashii-sekai-ni-shukufuku-wo-konosuba-anime-gif-17046393",
+        "pout": "https://tenor.com/view/aqua-kono-subarashii-sad-teary-eye-gif-13601442",
+        "laugh": "https://tenor.com/view/aqua-konosuba-giggle-laugh-smirk-gif-25522329",
+        "confus": "https://tenor.com/view/aqua-konosuba-konosuba-aqua-aqua-konosuba-anime-gif-24359968"
+    }
+    # Iterate through the keywords and check if any of them are in the response_text
+    for keyword in keywords:
+        if keyword in response_text.lower():
+            gif_url = keywords[keyword]
+            return gif_url
+    # If no keywords are found, return None
+    return None
 def split_text(text):
     parts = re.split(r'\n[a-zA-Z]', text)
     parts = [part for part in parts if not part.startswith("You:")]
@@ -105,11 +129,7 @@ for filename in os.listdir(characters_folder):
             elif os.path.exists(os.path.join(characters_folder, image_file_png)):
                 character_data['char_image'] = image_file_png
             characters.append(character_data)
-# Print a list of characters and let the user choose one
-for i, character in enumerate(characters):
-    print(f"{i+1}. {character['char_name']}")
-selected_char = int(input("Please select a character: ")) - 1
-data = characters[selected_char]
+data = characters[0]
 # Get the character name, greeting, and image
 char_name = data["char_name"]
 char_greeting = data["char_greeting"]
@@ -139,13 +159,10 @@ for filename in os.listdir(settings_folder):
             generation_settings['top_p'] = generation_settings.get('top_p', 0.9)
             generation_settings['typical'] = generation_settings.get('typical', 1)
             generation_settings['sampler_order'] = generation_settings.get('sampler_order', [6, 0, 1, 2, 3, 4, 5])
-            generation_settings['frmttriminc'] = generation_settings.get('frmttriminc', True)
+            generation_settings['frmttriminc'] = generation_settings.get('frmttriminc', False)
             generation_settings['frmtrmblln'] = generation_settings.get('frmtrmblln', True)
             settings.append(generation_settings)
-for i, setting in enumerate(settings):
-    print(f"{i+1}. {generation_settings['setting_name']}")
-selected_settings= int(input("Please select a settings file: ")) - 1
-setting = settings[selected_settings]
+setting = settings[0]
 num_lines_to_keep = 20
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='/', intents=intents)
@@ -192,10 +209,48 @@ async def reset(ctx):
     await ctx.send("Conversation history has been reset.")
 @bot.event
 async def on_message(message):
+    global conversation_history
+    #DM Handling
+    if isinstance(message.channel, discord.DMChannel):
+        if message.author == bot.user:
+            return
+        your_message = message.content
+        dm_name = str(message.author.name)
+        dm_message = "A DM? What things do you wish to discuss with Aqua-SamAI in private?"
+        path_to_dm_log = "Logs/"+dm_name+"_chat_logs.txt"
+        if not os.path.exists(path_to_dm_log) :
+            conversation_history = conversation_history + f'{char_name}: {dm_message}\n'
+            with open(path_to_dm_log, "a") as file:
+                file.write(f"You:{your_message}\n")
+                file.write(f'{char_name}: {dm_message}\n')
+            await message.reply(dm_message)
+            return
+        else :
+            if SAVE_CHATS:
+                with open(path_to_dm_log, "a") as file:
+                    file.write(f"You:{your_message}\n")
+            print(f"{message.author.name}:{your_message}")
+            prompt = get_prompt(conversation_history,message.author.name, message.content)
+            print(prompt)
+            response = requests.post(f"{ENDPOINT}/api/v1/generate", json=prompt)
+            if response.status_code == 200:
+                results = response.json()['results']
+                text = results[0]['text']
+                response_text = split_text(text)[0]
+                if SAVE_CHATS:
+                    with open(path_to_dm_log, "a") as file:
+                        file.write(f'{char_name}: {response_text}\n')
+                conversation_history = conversation_history + f'{char_name}: {response_text}\n'
+                response_text = response_text.replace(char_name+":", "")
+                gif_url = keyword_scan(response_text)
+                await message.reply(response_text)
+                if gif_url:
+                    await message.reply(str(gif_url))
+                return
+    #Channel Message Handling
     if PERIOD_IGNORE and message.content.startswith(".") and not message.content.startswith("/") and not message.channel.id == CHANNEL_ID:
         return
     else:
-        global conversation_history
         if message.author == bot.user:
             return
         your_message = message.content
@@ -215,6 +270,9 @@ async def on_message(message):
                     file.write(f'{char_name}: {response_text}\n')
             conversation_history = conversation_history + f'{char_name}: {response_text}\n'
             response_text = response_text.replace(char_name+":", "")
+            gif_url = keyword_scan(response_text)
             await message.reply(response_text)
+            if gif_url:
+                await message.reply(str(gif_url))
 
 bot.run(DISCORD_BOT_TOKEN)
