@@ -151,6 +151,8 @@ intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='/', intents=intents)
 conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
                         f"Scenario: {data['world_scenario']}\n" + \
+                        f'Example Dialogue: \n' + \
+                        f'f"{char_dialogue}\n' + \
                         f'<START>\n' + \
                         f'f"{char_name}: {char_greeting}\n'
 starting_dialogue = char_greeting.replace("{", "").replace("}", "").replace("'", "")
@@ -183,6 +185,8 @@ async def reset(ctx):
     global conversation_history
     conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
                             f"Scenario: {data['world_scenario']}\n" + \
+                            f'Example Dialogue: \n' + \
+                            f'f"{char_dialogue}\n' + \
                             f'<START>\n' + \
                             f'f"{char_name}: {char_greeting}\n'
     await ctx.send("Conversation history has been reset.")
