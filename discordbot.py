@@ -1,4 +1,3 @@
-import requests
 import json
 import os
 import io
@@ -8,15 +7,23 @@ from pathlib import Path
 import re
 import base64
 from dotenv import load_dotenv
-from discord.ext import commands
+from discord.ext import commands, tasks
+from discord.ext.commands import Bot, Context
+import asyncio
+import random
+import shutil
+
+
 # get .env variables
 load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 ENDPOINT = os.getenv("ENDPOINT")
 PERIOD_IGNORE = os.getenv("PERIOD_IGNORE")
-def split_text(text):
-    parts = re.split(r'\n[a-zA-Z]', text)
-    return parts
+
+intents = discord.Intents.all()
+bot = Bot(command_prefix=commands.when_mentioned_or("/"), intents=intents, help_command=None)
+
+
 def upload_character(json_file, img, tavern=False):
     json_file = json_file if type(json_file) == str else json_file.decode('utf-8')
     data = json.loads(json_file)
@@ -35,6 +42,7 @@ def upload_character(json_file, img, tavern=False):
     print(f'New character saved to "characters/{outfile_name}.json".')
     return outfile_name
 
+
 def upload_tavern_character(img, name1, name2):
     _img = Image.open(io.BytesIO(img))
     _img.getexif()
@@ -44,28 +52,6 @@ def upload_tavern_character(img, name1, name2):
     _json['example_dialogue'] = _json['example_dialogue'].replace('{{user}}', name1).replace('{{char}}', _json['char_name'])
     return upload_character(json.dumps(_json), img, tavern=True)
 
-def get_prompt(conversation_history, user, text):
-    return {
-        "prompt": conversation_history + f"{user}: {text}\n{char_name}:",
-        "use_story": False,
-        "use_memory": False,
-        "use_authors_note": False,
-        "use_world_info": False,
-        "max_context_length": 1818,
-        "max_length": 180,
-        "rep_pen": 1.03,
-        "rep_pen_range": 1024,
-        "rep_pen_slope": 0.9,
-        "temperature": 0.98,
-        "tfs": 0.9,
-        "top_a": 0,
-        "top_k": 0,
-        "top_p": 0.9,
-        "typical": 1,
-        "sampler_order": [6, 0, 1, 2, 3, 4, 5],
-        "frmttriminc": True,
-        "frmtrmblln": True
-    }
 
 characters_folder = 'Characters'
 cards_folder = 'Cards'
@@ -86,6 +72,7 @@ try:
             os.rename(os.path.join(cards_folder, filename), os.path.join(cards_folder, 'Converted', filename))
 except:
     pass
+
 # Load character data from JSON files in the character folder
 for filename in os.listdir(characters_folder):
     if filename.endswith('.json'):
@@ -104,70 +91,125 @@ for i, character in enumerate(characters):
     print(f"{i+1}. {character['char_name']}")
 selected_char = int(input("Please select a character: ")) - 1
 data = characters[selected_char]
+
 # Get the character name, greeting, and image
 char_name = data["char_name"]
-char_greeting = data["char_greeting"]
-char_dialogue = data["char_greeting"]
+char_filename = os.path.join(characters_folder, f"{char_name}.json")
 char_image = data.get("char_image")
 
+shutil.copyfile(char_filename, "chardata.json")
+
 num_lines_to_keep = 20
-intents = discord.Intents.all()
-bot = commands.Bot(command_prefix='/', intents=intents)
-conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
-                        f"World Scenario: {data['world_scenario']}\n" + \
-                        f'<START>\n' + \
-                        f'{char_dialogue}' + \
-                        f'<START>\n' + \
-                        f'f"{char_name}: {char_greeting}\n'
+
+
+# conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
+#                         f"World Scenario: {data['world_scenario']}\n" + \
+#                         f'<START>\n' + \
+#                         f'{example_dialogue}' + \
+#                         f'<START>\n' + \
+#                         f'f"{char_name}: {char_greeting}\n'
 @bot.event
 async def on_ready():
-    try:
-        with open(f"Characters/{char_image}", 'rb') as f:
-            avatar_data = f.read()
-        await bot.user.edit(username=char_name, avatar=avatar_data)
-    except FileNotFoundError:
-        with open(f"Characters/default.png", 'rb') as f:
-            avatar_data = f.read()
-        await bot.user.edit(username=char_name, avatar=avatar_data)
-        print(f"No image found for {char_name}. Setting image to default.")
-    except discord.errors.HTTPException as error:
-        if error.code == 50035 and 'Too many users have this username, please try another' in error.text:
-            await bot.user.edit(username=char_name + "BOT", avatar=avatar_data)
-        elif error.code == 50035 and 'You are changing your username or Discord Tag too fast. Try again later.' in error.text:
-            pass
-        else:
-            raise error
+    update_name = input("Update Bot name and pic? (y or n): ")
+    if update_name.lower() == "y":
+        try:
+            with open(f"Characters/{char_image}", 'rb') as f:
+                avatar_data = f.read()
+            await bot.user.edit(username=char_name, avatar=avatar_data)
+        except FileNotFoundError:
+            with open(f"Characters/default.png", 'rb') as f:
+                avatar_data = f.read()
+            await bot.user.edit(username=char_name, avatar=avatar_data)
+            print(f"No image found for {char_name}. Setting image to default.")
+        except discord.errors.HTTPException as error:
+            if error.code == 50035 and 'Too many users have this username, please try another' in error.text:
+                await bot.user.edit(username=char_name + "BOT", avatar=avatar_data)
+            elif error.code == 50035 and 'You are changing your username or Discord Tag too fast. Try again later.' in error.text:
+                pass
+            else:
+                raise error
     print(f'{bot.user} has connected to Discord!')
-@bot.command()
-async def reset(ctx):
-    global conversation_history
-    conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
-                            f"World Scenario: {data['world_scenario']}\n" + \
-                            f'<START>\n' + \
-                            f'{char_dialogue}' + \
-                            f'<START>\n' + \
-                            f'f"{char_name}: {char_greeting}\n'
-    await ctx.send("Conversation history has been reset.")
+# @bot.command()
+# async def reset(ctx):
+#     global conversation_history
+#     conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
+#                             f"World Scenario: {data['world_scenario']}\n" + \
+#                             f'<START>\n' + \
+#                             f'{char_dialogue}' + \
+#                             f'<START>\n' + \
+#                             f'f"{char_name}: {char_greeting}\n'
+#     await ctx.send("Conversation history has been reset.")
 
-@bot.event
+
+async def replace_user_mentions(content, bot):
+    user_ids = re.findall(r'<@(\d+)>', content)
+    for user_id in user_ids:
+        user = await bot.fetch_user(int(user_id))
+        if user:
+            display_name = user.display_name
+            content = content.replace(f"<@{user_id}>", display_name)
+    return content
+
+# This function is triggered every time a message is sent in a Discord server
 async def on_message(message):
-    if PERIOD_IGNORE and message.content.startswith(".") and not message.content.startswith("/"):
-        return
-    else:
-        global conversation_history
+    # Check if the message is sent in a server or a private message
+    if message.guild is None:
+        # If it's a private message and the message is sent by the bot, do nothing
         if message.author == bot.user:
             return
-        your_message = message.content
-        print(f"{message.author.name}:{your_message}")
-        prompt = get_prompt(conversation_history,message.author.name, message.content)
-        print(prompt)
-        response = requests.post(f"{ENDPOINT}/api/v1/generate", json=prompt)
-        if response.status_code == 200:
-            results = response.json()['results']
-            text = results[0]['text']
-            response_text = split_text(text)[0]
-            await message.channel.send(response_text)
-            conversation_history = conversation_history + f'{char_name}: {response_text}\n'
 
+        # Get the message content and the bot's name for pattern matching
+        content = message.content
+        bot_name = bot.user.name.split()[0]
+
+        # If the message is a reply to another message, handle it differently (not implemented in this code)
+        if message.reference is not None:
+            pass
+
+        # Create a case-insensitive pattern that matches the bot's name and mentions
+        pattern = re.compile(rf"({bot_name}|<@!{bot.user.id}>)", re.IGNORECASE)
+
+        # Check if the message content matches the pattern
+        if message.guild is None or pattern.search(content):
+            # If the bot is mentioned, reply 100% of the time
+            if message.attachments and message.attachments[0].filename.lower().endswith((".jpg", ".jpeg", ".png", ".gif")):
+                # If the message has an image attachment, pass it to the imagecaption cog for a caption
+                image_response = await bot.get_cog("image_caption").image_comment(message, content)
+                response = await bot.get_cog("chatbot").chat_command(message, image_response, bot)
+                await message.channel.send(response)
+            else:
+                # Otherwise, generate a response with the chatbot
+                response = await bot.get_cog("chatbot").chat_command(message, content, bot)
+                await message.channel.send(response)
+        elif random.random() < 0.35:
+            # If the bot is not mentioned, reply 35% of the time
+            if message.attachments and message.attachments[0].filename.lower().endswith((".jpg", ".jpeg", ".png", ".gif")):
+                # If the message has an image attachment, pass it to the imagecaption cog for a caption
+                image_response = await bot.get_cog("image_caption").image_comment(message, content)
+                response = await bot.get_cog("chatbot").chat_command(message, image_response, bot)
+                await message.channel.send(response)
+            else:
+                # Otherwise, generate a response with the chatbot
+                response = await bot.get_cog("chatbot").chat_command(message, content, bot)
+                await message.channel.send(response)
+
+# Add the message handler function to the bot
+bot.event(on_message)
+
+
+
+async def load_cogs() -> None:
+
+    for file in os.listdir(f"{os.path.realpath(os.path.dirname(__file__))}/cogs"):
+        if file.endswith(".py"):
+            extension = file[:-3]
+            try:
+                await bot.load_extension(f"cogs.{extension}")
+            except Exception as e:
+                exception = f"{type(e).__name__}: {e}"
+
+
+
+asyncio.run(load_cogs())
 
 bot.run(DISCORD_BOT_TOKEN)
