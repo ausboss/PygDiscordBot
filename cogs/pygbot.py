@@ -4,8 +4,12 @@ import json
 import requests
 import discord
 from discord.ext import commands
+import os
+from dotenv import load_dotenv
 
-endpoint = "https://current-quotes-fsdf.com/"
+
+ENDPOINT = os.getenv("ENDPOINT")
+
 
 
 class Chatbot:
