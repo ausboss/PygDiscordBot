@@ -78,6 +78,8 @@ for filename in os.listdir(characters_folder):
     if filename.endswith('.json'):
         with open(os.path.join(characters_folder, filename)) as read_file:
             character_data = json.load(read_file)
+            # Add the filename as a key in the character data dictionary
+            character_data['char_filename'] = filename
             # Check if there is a corresponding image file for the character
             image_file_jpg = f"{os.path.splitext(filename)[0]}.jpg"
             image_file_png = f"{os.path.splitext(filename)[0]}.png"
@@ -86,6 +88,7 @@ for filename in os.listdir(characters_folder):
             elif os.path.exists(os.path.join(characters_folder, image_file_png)):
                 character_data['char_image'] = image_file_png
             characters.append(character_data)
+
 # Print a list of characters and let the user choose one
 for i, character in enumerate(characters):
     print(f"{i+1}. {character['char_name']}")
@@ -94,7 +97,8 @@ data = characters[selected_char]
 
 # Get the character name, greeting, and image
 char_name = data["char_name"]
-char_filename = os.path.join(characters_folder, f"{char_name}.json")
+char_filename = os.path.join(characters_folder, data['char_filename'])
+
 char_image = data.get("char_image")
 
 shutil.copyfile(char_filename, "chardata.json")
