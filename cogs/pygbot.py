@@ -7,10 +7,7 @@ from discord.ext import commands
 import os
 from dotenv import load_dotenv
 
-
 ENDPOINT = os.getenv("ENDPOINT")
-
-
 
 class Chatbot:
     def __init__(self, char_filename):
@@ -29,7 +26,7 @@ class Chatbot:
 
     def generate_response(self):
         # Generate response based on the user's message and the prompt
-        response = requests.post(f"{endpoint}/api/v1/generate", json=self.prompt)
+        response = requests.post(f"{ENDPOINT}/api/v1/generate", json=self.prompt)
         results = response.json()['results']
         # extract the correct bot reponse from the large json of information
         text = results[0]['text']
