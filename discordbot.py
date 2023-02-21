@@ -20,7 +20,6 @@ DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 ENDPOINT = os.getenv("ENDPOINT")
 PERIOD_IGNORE = os.getenv("PERIOD_IGNORE")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
-
 intents = discord.Intents.all()
 bot = Bot(command_prefix=commands.when_mentioned_or("/"), intents=intents, help_command=None)
 
@@ -104,15 +103,6 @@ char_image = data.get("char_image")
 
 shutil.copyfile(char_filename, "chardata.json")
 
-num_lines_to_keep = 20
-
-
-# conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
-#                         f"World Scenario: {data['world_scenario']}\n" + \
-#                         f'<START>\n' + \
-#                         f'{example_dialogue}' + \
-#                         f'<START>\n' + \
-#                         f'f"{char_name}: {char_greeting}\n'
 @bot.event
 async def on_ready():
 
@@ -134,17 +124,6 @@ async def on_ready():
             else:
                 raise error
     print(f'{bot.user} has connected to Discord!')
-# @bot.command()
-# async def reset(ctx):
-#     global conversation_history
-#     conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
-#                             f"World Scenario: {data['world_scenario']}\n" + \
-#                             f'<START>\n' + \
-#                             f'{char_dialogue}' + \
-#                             f'<START>\n' + \
-#                             f'f"{char_name}: {char_greeting}\n'
-#     await ctx.send("Conversation history has been reset.")
-
 
 async def replace_user_mentions(content, bot):
     user_ids = re.findall(r'<@(\d+)>', content)
@@ -158,8 +137,7 @@ async def replace_user_mentions(content, bot):
 # This function is triggered every time a message is sent in a Discord server
 async def on_message(message):
     # Check if the message is sent in a server or a private message
-    print(message.reference)
-    if message.channel.id == CHANNEL_ID or message.guild is None:
+    if message.channel.id == int(CHANNEL_ID) or message.guild is None:
         # If it's a private message and the message is sent by the bot, do nothing
         if message.author == bot.user:
             return
