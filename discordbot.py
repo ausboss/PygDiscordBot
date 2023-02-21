@@ -19,6 +19,7 @@ load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 ENDPOINT = os.getenv("ENDPOINT")
 PERIOD_IGNORE = os.getenv("PERIOD_IGNORE")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
 
 intents = discord.Intents.all()
 bot = Bot(command_prefix=commands.when_mentioned_or("/"), intents=intents, help_command=None)
@@ -94,7 +95,7 @@ for i, character in enumerate(characters):
     print(f"{i+1}. {character['char_name']}")
 selected_char = int(input("Please select a character: ")) - 1
 data = characters[selected_char]
-
+update_name = input("Update Bot name and pic? (y or n): ")
 # Get the character name, greeting, and image
 char_name = data["char_name"]
 char_filename = os.path.join(characters_folder, data['char_filename'])
@@ -114,7 +115,7 @@ num_lines_to_keep = 20
 #                         f'f"{char_name}: {char_greeting}\n'
 @bot.event
 async def on_ready():
-    update_name = input("Update Bot name and pic? (y or n): ")
+
     if update_name.lower() == "y":
         try:
             with open(f"Characters/{char_image}", 'rb') as f:
@@ -157,44 +158,52 @@ async def replace_user_mentions(content, bot):
 # This function is triggered every time a message is sent in a Discord server
 async def on_message(message):
     # Check if the message is sent in a server or a private message
-    if message.guild is None:
+    print(message.reference)
+    if message.channel.id == CHANNEL_ID or message.guild is None:
         # If it's a private message and the message is sent by the bot, do nothing
         if message.author == bot.user:
             return
 
         # Get the message content and the bot's name for pattern matching
-        content = message.content
-        bot_name = bot.user.name.split()[0]
-
-        # If the message is a reply to another message, handle it differently (not implemented in this code)
+        content = message.content.lower()
+        name_pattern = r"(\b|^){}(\b|$)".format(bot.user.name.split()[0].lower())
         if message.reference is not None:
             pass
+        if content.startswith(f"<@{bot.user.id}>"):
+            # The bot is mentioned at the beginning of the message
+            message_content = content.replace(f"<@{bot.user.id}>", "").strip()
+            if not message_content and not message.attachments:
+                # No message content after the bot mention, check last few messages for context
+                message_log = []
+                async for msg in message.channel.history(limit=5):
+                    if msg.author == message.author:
+                        message_log.append(msg)
+                if len(message_log) > 0:
+                    message = message_log[1]
 
-        # Create a case-insensitive pattern that matches the bot's name and mentions
-        pattern = re.compile(rf"({bot_name}|<@!{bot.user.id}>)", re.IGNORECASE)
-
-        # Check if the message content matches the pattern
-        if message.guild is None or pattern.search(content):
-            # If the bot is mentioned, reply 100% of the time
-            if message.attachments and message.attachments[0].filename.lower().endswith((".jpg", ".jpeg", ".png", ".gif")):
-                # If the message has an image attachment, pass it to the imagecaption cog for a caption
-                image_response = await bot.get_cog("image_caption").image_comment(message, content)
+        # Replace user mentions with display names
+        message_content = await replace_user_mentions(message.content, bot)
+        if message.guild is None or re.search(name_pattern, content) or f"<@{bot.user.id}>" in content:
+            # The bot is mentioned in the message, reply 100% of the time
+            if message.attachments and message.attachments[0].filename.lower().endswith(
+                    (".jpg", ".jpeg", ".png", ".gif")):
+                # The message has an attached image, pass it to the imagecaption cog
+                image_response = await bot.get_cog("image_caption").image_comment(message, message_content)
                 response = await bot.get_cog("chatbot").chat_command(message, image_response, bot)
                 await message.channel.send(response)
             else:
-                # Otherwise, generate a response with the chatbot
-                response = await bot.get_cog("chatbot").chat_command(message, content, bot)
+                response = await bot.get_cog("chatbot").chat_command(message, message_content, bot)
                 await message.channel.send(response)
         elif random.random() < 0.35:
-            # If the bot is not mentioned, reply 35% of the time
-            if message.attachments and message.attachments[0].filename.lower().endswith((".jpg", ".jpeg", ".png", ".gif")):
-                # If the message has an image attachment, pass it to the imagecaption cog for a caption
-                image_response = await bot.get_cog("image_caption").image_comment(message, content)
+            # The bot is not mentioned in the message, reply 35% of the time
+            if message.attachments and message.attachments[0].filename.lower().endswith(
+                    (".jpg", ".jpeg", ".png", ".gif")):
+                # The message has an attached image, pass it to the imagecaption cog
+                image_response = await bot.get_cog("image_caption").image_comment(message, message_content)
                 response = await bot.get_cog("chatbot").chat_command(message, image_response, bot)
                 await message.channel.send(response)
             else:
-                # Otherwise, generate a response with the chatbot
-                response = await bot.get_cog("chatbot").chat_command(message, content, bot)
+                response = await bot.get_cog("chatbot").chat_command(message, message_content, bot)
                 await message.channel.send(response)
 
 # Add the message handler function to the bot
@@ -211,6 +220,7 @@ async def load_cogs() -> None:
                 await bot.load_extension(f"cogs.{extension}")
             except Exception as e:
                 exception = f"{type(e).__name__}: {e}"
+                print(exception)
 
 
 
