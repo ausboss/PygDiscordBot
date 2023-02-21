@@ -136,12 +136,12 @@ async def replace_user_mentions(content, bot):
 
 # This function is triggered every time a message is sent in a Discord server
 async def on_message(message):
-    
-    if PERIOD_IGNORE and message.content.startswith("."):
+
+    if not PERIOD_IGNORE and message.content.startswith("."):
         # Check if the message is sent in a server or a private message
         if message.channel.id == int(CHANNEL_ID) or message.guild is None:
-    
-    
+
+
             # Get the message content and the bot's name for pattern matching
             content = message.content.lower()
             name_pattern = r"(\b|^){}(\b|$)".format(bot.user.name.split()[0].lower())
@@ -158,7 +158,7 @@ async def on_message(message):
                             message_log.append(msg)
                     if len(message_log) > 0:
                         message = message_log[1]
-    
+
             # Replace user mentions with display names
             message_content = await replace_user_mentions(message.content, bot)
             if message.guild is None or re.search(name_pattern, content) or f"<@{bot.user.id}>" in content or (message.type == discord.MessageType.reply and message.reference.resolved != bot.user):
