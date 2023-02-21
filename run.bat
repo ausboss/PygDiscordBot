@@ -18,12 +18,17 @@ if %errorlevel% neq 0 (
 rem Create the virtual environment
 virtualenv venv
 
+
+
 rem Activate the virtual environment
 call venv\Scripts\activate
 
 rem Install the required packages
 pip install -r requirements.txt
+pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
 
+rem clear console
+cls
 rem Run the code
 python discordbot.py
 
