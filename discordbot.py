@@ -125,6 +125,7 @@ async def on_ready():
                 raise error
     print(f'{bot.user} has connected to Discord!')
 
+
 async def replace_user_mentions(content, bot):
     user_ids = re.findall(r'<@(\d+)>', content)
     for user_id in user_ids:
@@ -134,14 +135,21 @@ async def replace_user_mentions(content, bot):
             content = content.replace(f"<@{user_id}>", display_name)
     return content
 
+async def extract_message_contents(messages):
+    message_contents = [message.content for message in sorted(messages, key=lambda m: m.created_at)]
+    joined_messages = "\n".join(message_contents)
+    cleaned_joined = await replace_user_mentions(joined_messages, bot)
+    return cleaned_joined
+
+
 # This function is triggered every time a message is sent in a Discord server
 async def on_message(message):
-
-    if not PERIOD_IGNORE and message.content.startswith("."):
+    if message.author == bot.user:
+        return
+    if PERIOD_IGNORE and not message.content.startswith("."):
         # Check if the message is sent in a server or a private message
         if message.channel.id == int(CHANNEL_ID) or message.guild is None:
-
-
+            message_content = message.content
             # Get the message content and the bot's name for pattern matching
             content = message.content.lower()
             name_pattern = r"(\b|^){}(\b|$)".format(bot.user.name.split()[0].lower())
@@ -157,9 +165,15 @@ async def on_message(message):
                         if msg.author == message.author:
                             message_log.append(msg)
                     if len(message_log) > 0:
-                        message = message_log[1]
+                        extracted_message = await extract_message_contents(message_log)
+                        print(extracted_message)
+                        # message = message_log[1]
+                        message_content = extracted_message
 
             # Replace user mentions with display names
+            if not message_content:
+                message_content = await replace_user_mentions(message_content, bot)
+            # checks whether the message is a private message, whether the bot's name or mention is included, whether the message is a reply targeting the bot, or whether a random number is less than 0.35
             if message.guild is None or re.search(name_pattern, content) or f"<@{bot.user.id}>" in content or (message.type == discord.MessageType.reply and message.reference.resolved != bot.user) or random.random() < 0.35:
                 # The bot is mentioned in the message, reply 100% of the time
                 if message.attachments and message.attachments[0].filename.lower().endswith(
