@@ -19,7 +19,7 @@ class Chatbot:
     def __init__(self, char_filename):
         with open(char_filename, "r") as f:
             data = json.load(f)
-            self.char_name = data["char_name"]
+            self.char_title = data["char_name"]
             self.char_persona = data["char_persona"]
             self.char_greeting = data["char_greeting"]
             self.world_scenario = data["world_scenario"]
