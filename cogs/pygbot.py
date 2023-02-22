@@ -19,14 +19,15 @@ class Chatbot:
     def __init__(self, char_filename):
         with open(char_filename, "r") as f:
             data = json.load(f)
-            self.char_name = data["char_name"]
+            self.char_title = data["char_name"]
+            self.char_name = data["name"]
             self.char_persona = data["char_persona"]
             self.char_greeting = data["char_greeting"]
             self.world_scenario = data["world_scenario"]
             self.example_dialogue = data["example_dialogue"]
 
         self.history = [
-            f"{self.char_name}\n{self.char_name}'s Persona: {self.char_persona}\nWorld Scenario: {self.world_scenario}\n{self.example_dialogue}\n{self.char_name}: {self.char_greeting}\n"]
+            f"{self.char_title}\n{self.char_name}'s Persona: {self.char_persona}\nWorld Scenario: {self.world_scenario}\n{self.example_dialogue}\n{self.char_name}: {self.char_greeting}\n"]
         self.prompt = None
 
 
@@ -54,14 +55,14 @@ class Chatbot:
         prompt = f"{self.char_name}:"
 
         # separate each part of the history and prompt on a new line
-        if len(self.history) < 26:
-            # Include char_name and char_persona at the beginning of the history
-            history_lines = [f"{self.char_name}\n", f"{self.char_name}'s Persona: {self.char_persona}\n"]
+        if len(self.history) < 20:
+            # Include char_title and char_persona at the beginning of the history
+            history_lines = [f"{self.char_title}\n", f"{self.char_name}'s Persona: {self.char_persona}\n"]
             history_lines.extend(self.history)
             history = '\n'.join(history_lines)
         else:
-            # Include char_name and char_persona at the beginning of the history
-            history_lines = [f"{self.char_name}\n", f"{self.char_name}'s Persona: {self.char_persona}\n",
+            # Include char_title and char_persona at the beginning of the history
+            history_lines = [f"{self.char_title}\n", f"{self.char_name}'s Persona: {self.char_persona}\n",
                              f"World Scenario: {self.world_scenario}\n", f"{self.char_greeting}\n"]
             for line in self.history:
                 if f"{self.char_name}: {self.char_greeting}" not in line:
@@ -99,3 +100,4 @@ class ChatbotCog(commands.Cog, name="chatbot"):
 
 async def setup(bot):
     await bot.add_cog(ChatbotCog(bot))
+
