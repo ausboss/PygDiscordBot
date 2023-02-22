@@ -160,29 +160,25 @@ async def on_message(message):
                         message = message_log[1]
 
             # Replace user mentions with display names
-            message_content = await replace_user_mentions(message.content, bot)
-            if message.guild is None or re.search(name_pattern, content) or f"<@{bot.user.id}>" in content or (message.type == discord.MessageType.reply and message.reference.resolved != bot.user):
+            if message.guild is None or re.search(name_pattern, content) or f"<@{bot.user.id}>" in content or (message.type == discord.MessageType.reply and message.reference.resolved != bot.user) or random.random() < 0.35:
                 # The bot is mentioned in the message, reply 100% of the time
                 if message.attachments and message.attachments[0].filename.lower().endswith(
                         (".jpg", ".jpeg", ".png", ".gif")):
                     # The message has an attached image, pass it to the imagecaption cog
                     image_response = await bot.get_cog("image_caption").image_comment(message, message_content)
                     response = await bot.get_cog("chatbot").chat_command(message, image_response, bot)
-                    await message.channel.send(response)
+                    async with message.channel.typing():
+                        await asyncio.sleep(2)  # Simulate some work being done
+                        await message.reply(response)
                 else:
                     response = await bot.get_cog("chatbot").chat_command(message, message_content, bot)
-                    await message.channel.send(response)
-            elif random.random() < 0.35:
-                # The bot is not mentioned in the message, reply 35% of the time
-                if message.attachments and message.attachments[0].filename.lower().endswith(
-                        (".jpg", ".jpeg", ".png", ".gif")):
-                    # The message has an attached image, pass it to the imagecaption cog
-                    image_response = await bot.get_cog("image_caption").image_comment(message, message_content)
-                    response = await bot.get_cog("chatbot").chat_command(message, image_response, bot)
-                    await message.channel.send(response)
-                else:
-                    response = await bot.get_cog("chatbot").chat_command(message, message_content, bot)
-                    await message.channel.send(response)
+                    if random.random() < 0.35:
+                        await message.channel.send(response)
+                    else:
+                        response = await bot.get_cog("chatbot").chat_command(message, message_content, bot)
+                        async with message.channel.typing():
+                            await asyncio.sleep(2)  # Simulate some work being done
+                            await message.reply(response)
 
 # Add the message handler function to the bot
 bot.event(on_message)
