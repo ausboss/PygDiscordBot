@@ -6,87 +6,85 @@ from discord.ext import commands
 import os
 from dotenv import load_dotenv
 import nltk
+from nltk.tokenize import word_tokenize
+nltk.download('punkt')
 
-nltk.download('punkt')  # download the punkt tokenizer if you haven't already
-
-
-
-
+# load environment variables
 load_dotenv()
 ENDPOINT = os.getenv("ENDPOINT")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
+
+# Put the configuration settings in the api
+model_config = {
+    "max_context_length": 1488,
+    "max_length": 50,
+    "rep_pen": 1.03,
+    "rep_pen_range": 1024,
+    "rep_pen_slope": 0.9,
+    "temperature": 0.6,
+    "tfs": 0.9,
+    "top_p": 0.9,
+    "typical": 1,
+    "sampler_order": [6, 0, 1, 2, 3, 4, 5]
+}
+# Send a PUT request to modify the settings
+response = requests.put(f"{ENDPOINT}/config", json=model_config)
 
 class Chatbot:
     def __init__(self, char_filename):
+        # read character data from JSON file
         with open(char_filename, "r") as f:
             data = json.load(f)
-            self.char_title = data["char_name"]
             self.char_name = data["name"]
             self.char_persona = data["char_persona"]
             self.char_greeting = data["char_greeting"]
             self.world_scenario = data["world_scenario"]
             self.example_dialogue = data["example_dialogue"]
 
-        self.history = [
-            f"{self.char_title}\n{self.char_name}'s Persona: {self.char_persona}\nWorld Scenario: {self.world_scenario}\n{self.example_dialogue}\n{self.char_name}: {self.char_greeting}\n"]
-        self.prompt = None
+        # initialize conversation history and character information
+        self.conversation_history = f"<START>\n{self.char_name}: {self.char_greeting}\n"
+        self.character_info = f"{self.char_name}'s Persona: {self.char_persona}\nScenario: {self.world_scenario}\n"
+        self.num_lines_to_keep = 20
 
-
-    def generate_response(self):
-        # Generate response based on the user's message and the prompt
-        response = requests.post(f"{ENDPOINT}/api/v1/generate", json=self.prompt)
-        results = response.json()['results']
-
-        # extract the correct bot reponse from the large json of information
-        text = results[0]['text']
-        parts = re.split(r'\n[a-zA-Z]', text)[:1]
-        response_text = parts[0][1:]
-        if len(self.history) > 30:
-            self.history = self.history[-10:]
-        return response_text
-
-    def add_message(self, speaker, message_content):
-        self.history.append(f"{speaker}: {message_content}")
+    def prompt_tokens(self, prompt):
+        # tokenize the prompt and return the number of tokens
+        tokens = word_tokenize(prompt["prompt"])
+        num_tokens = len(tokens)
+        return num_tokens
 
     def save_conversation(self, message, message_content, bot):
-        message_content = message_content.replace(f"<@{bot.user.id}>", "").strip()
-        self.add_message(message.author.name, message_content)
-        print(f"{message.author.name}: {message_content}")
+        # add user message to conversation history
+        self.conversation_history += f'{message.author.name}: {message_content}\n'
 
-        prompt = f"{self.char_name}:"
+        # define the prompt
+        prompt = {
+            "prompt": self.character_info + '\n'.join(
+                self.conversation_history.split('\n')[-self.num_lines_to_keep:]) + f'{self.char_name}:',
+        }
 
-        # separate each part of the history and prompt on a new line
-        if len(self.history) < 20:
-            # Include char_title and char_persona at the beginning of the history
-            history_lines = [f"{self.char_title}\n", f"{self.char_name}'s Persona: {self.char_persona}\n"]
-            history_lines.extend(self.history)
-            history = '\n'.join(history_lines)
+        # get the number of tokens in the prompt
+        tokens = self.prompt_tokens(prompt)
+        print(tokens)
+
+        # send a post request to the API endpoint
+        response = requests.post(f"{ENDPOINT}/api/v1/generate", json=prompt)
+
+        # check if the request was successful
+        if response.status_code == 200:
+            # get the results from the response
+            results = response.json()['results']
+            text = results[0]['text']
+            # split the response to remove excess dialogue
+            parts = re.split(r'\n[a-zA-Z]', text)[:1]
+            response_text = parts[0][1:]
+            # add bot response to conversation history
+            self.conversation_history = self.conversation_history + f'{self.char_name}: {response_text}\n'
         else:
-            # Include char_title and char_persona at the beginning of the history
-            history_lines = [f"{self.char_title}\n", f"{self.char_name}'s Persona: {self.char_persona}\n",
-                             f"World Scenario: {self.world_scenario}\n", f"{self.char_greeting}\n"]
-            for line in self.history:
-                if f"{self.char_name}: {self.char_greeting}" not in line:
-                    history_lines.append(line)
-            history = '\n'.join(history_lines)
+            print("endpoint issue")
 
-        # set the new prompt by joining the history and prompt together
-        self.prompt = {"prompt": f"{history}\n{prompt}", "use_story": False, "use_memory": False,
-                       "use_authors_note": False, "use_world_info": False, "max_context_length": 1400,
-                       "max_length": 70, "rep_pen": 1.05, "rep_pen_range": 800, "rep_pen_slope": 0.9,
-                       "temperature": 0.5, "tfs": 0.9, "top_a": 0, "top_k": 0, "top_p": 0.9,
-                       "typical": 1.0, "sampler_order": [6, 0, 1, 2, 3, 4, 5], "frmttriminc": True, "frmtrmblln": True}
-        prompt_tokens = nltk.word_tokenize(self.prompt["prompt"])
-        num_prompt_tokens = len(prompt_tokens)
-        print(num_prompt_tokens)
-        print(self.prompt)
-        print(len(self.history))
-        bot_response = self.generate_response()
-        self.add_message(self.char_name, bot_response)
-        print(f"{self.char_name}: {bot_response}")
-        return bot_response
+        return response_text
 
 
-# Here we name the cog and create a new class for the cog.
 class ChatbotCog(commands.Cog, name="chatbot"):
     def __init__(self, bot):
         self.bot = bot
@@ -94,10 +92,11 @@ class ChatbotCog(commands.Cog, name="chatbot"):
 
     @commands.command(name="chat")
     async def chat_command(self, message: discord.Message, message_content, bot) -> None:
-        response = self.chatbot.save_conversation(message, message_content, bot)
-        return response
+        # get response message from chatbot and return it
+        response_message = self.chatbot.save_conversation(message, message_content, bot)
+        return response_message
 
 
 async def setup(bot):
+    # add chatbot cog to bot
     await bot.add_cog(ChatbotCog(bot))
-
