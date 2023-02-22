@@ -147,6 +147,7 @@ async def on_message(message):
     if message.author == bot.user:
         return
     if PERIOD_IGNORE and not message.content.startswith("."):
+        message_content = message.content
         # Check if the message is sent in a server or a private message
         if message.channel.id == int(CHANNEL_ID) or message.guild is None:
             message_content = message.content
