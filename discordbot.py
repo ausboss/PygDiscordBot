@@ -126,79 +126,109 @@ async def on_ready():
     print(f'{bot.user} has connected to Discord!')
 
 
-async def replace_user_mentions(content, bot):
-    user_ids = re.findall(r'<@(\d+)>', content)
-    for user_id in user_ids:
-        user = await bot.fetch_user(int(user_id))
-        if user:
-            display_name = user.display_name
-            content = content.replace(f"<@{user_id}>", display_name)
-    return content
-
-async def extract_message_contents(messages):
-    message_contents = [message.content for message in sorted(messages, key=lambda m: m.created_at)]
-    joined_messages = "\n".join(message_contents)
-    cleaned_joined = await replace_user_mentions(joined_messages, bot)
-    return cleaned_joined
 
 
 # This function is triggered every time a message is sent in a Discord server
+# Simple
 async def on_message(message):
     if message.author == bot.user:
         return
     if PERIOD_IGNORE and not message.content.startswith("."):
-        message_content = message.content
-        # Check if the message is sent in a server or a private message
-        if message.channel.id == int(CHANNEL_ID) or message.guild is None:
-            message_content = message.content
-            # Get the message content and the bot's name for pattern matching
-            content = message.content.lower()
-            name_pattern = r"(\b|^){}(\b|$)".format(bot.user.name.split()[0].lower())
-            if message.reference is not None:
-                pass
-            if content.startswith(f"<@{bot.user.id}>"):
-                # The bot is mentioned at the beginning of the message
-                message_content = content.replace(f"<@{bot.user.id}>", "").strip()
-                if not message_content and not message.attachments:
-                    # No message content after the bot mention, check last few messages for context
-                    message_log = []
-                    async for msg in message.channel.history(limit=5):
-                        if msg.author == message.author:
-                            message_log.append(msg)
-                    if len(message_log) > 0:
-                        extracted_message = await extract_message_contents(message_log)
-                        print(extracted_message)
-                        # message = message_log[1]
-                        message_content = extracted_message
+        if message.channel.id == int(CHANNEL_ID):
 
-            # Replace user mentions with display names
-            if not message_content:
-                message_content = await replace_user_mentions(message_content, bot)
-            # checks whether the message is a private message, whether the bot's name or mention is included, whether the message is a reply targeting the bot, or whether a random number is less than 0.35
-            if message.guild is None or re.search(name_pattern, content) or f"<@{bot.user.id}>" in content or (message.type == discord.MessageType.reply and message.reference.resolved != bot.user) or random.random() < 0.35:
-                # The bot is mentioned in the message, reply 100% of the time
-                if message.attachments and message.attachments[0].filename.lower().endswith(
-                        (".jpg", ".jpeg", ".png", ".gif")):
-                    # The message has an attached image, pass it to the imagecaption cog
-                    image_response = await bot.get_cog("image_caption").image_comment(message, message_content)
-                    response = await bot.get_cog("chatbot").chat_command(message, image_response, bot)
-                    async with message.channel.typing():
-                        await asyncio.sleep(2)  # Simulate some work being done
-                        await message.reply(response)
-                else:
-                    response = await bot.get_cog("chatbot").chat_command(message, message_content, bot)
-                    if random.random() < 0.35:
-                        await message.channel.send(response)
-                    else:
-                        response = await bot.get_cog("chatbot").chat_command(message, message_content, bot)
-                        async with message.channel.typing():
-                            await asyncio.sleep(2)  # Simulate some work being done
-                            await message.reply(response)
+            if message.attachments and message.attachments[0].filename.lower().endswith(
+                    (".jpg", ".jpeg", ".png", ".gif")):
+                # The message has an attached image, pass it to the imagecaption cog
+                image_response = await bot.get_cog("image_caption").image_comment(message, message.content)
+                response = await bot.get_cog("chatbot").chat_command(message, image_response, bot)
+                async with message.channel.typing():
+                    await asyncio.sleep(2)  # Simulate some work being done
+                    await message.reply(response)
+            else:
+                response = await bot.get_cog("chatbot").chat_command(message, message.content, bot)
+                await message.channel.send(response)
+
 
 # Add the message handler function to the bot
 bot.event(on_message)
 
 
+################beginning###########################################################
+# functions for the more complex on_message function
+
+# async def replace_user_mentions(content, bot):
+#     user_ids = re.findall(r'<@(\d+)>', content)
+#     for user_id in user_ids:
+#         user = await bot.fetch_user(int(user_id))
+#         if user:
+#             display_name = user.display_name
+#             content = content.replace(f"<@{user_id}>", display_name)
+#     return content
+# 
+# async def extract_message_contents(messages):
+#     message_contents = [message.content for message in sorted(messages, key=lambda m: m.created_at)]
+#     joined_messages = "\n".join(message_contents)
+#     cleaned_joined = await replace_user_mentions(joined_messages, bot)
+#     return cleaned_joined
+
+
+# same as above but this is the version with more complex logic
+# This function is triggered every time a message is sent in a Discord server
+# async def on_message(message):
+#     if message.author == bot.user:
+#         return
+#     if PERIOD_IGNORE and not message.content.startswith("."):
+#         # Check if the message is sent in a server or a private message
+#         if message.channel.id == int(CHANNEL_ID) or message.guild is None:
+#             message_content = message.content
+#             # Get the message content and the bot's name for pattern matching
+#             content = message.content.lower()
+#             name_pattern = r"(\b|^){}(\b|$)".format(bot.user.name.split()[0].lower())
+#             if message.reference is not None:
+#                 pass
+#             if content.startswith(f"<@{bot.user.id}>"):
+#                 # The bot is mentioned at the beginning of the message
+#                 message_content = content.replace(f"<@{bot.user.id}>", "").strip()
+#                 if not message_content and not message.attachments:
+#                     # No message content after the bot mention, check last few messages for context
+#                     message_log = []
+#                     async for msg in message.channel.history(limit=5):
+#                         if msg.author == message.author:
+#                             message_log.append(msg)
+#                     if len(message_log) > 0:
+#                         extracted_message = await extract_message_contents(message_log)
+#                         print(extracted_message)
+#                         # message = message_log[1]
+#                         message_content = extracted_message
+#
+#             # Replace user mentions with display names
+#             if not message_content:
+#                 message_content = await replace_user_mentions(message_content, bot)
+#             # checks whether the message is a private message, whether the bot's name or mention is included, whether the message is a reply targeting the bot, or whether a random number is less than 0.35
+#             if message.guild is None or re.search(name_pattern, content) or f"<@{bot.user.id}>" in content or (message.type == discord.MessageType.reply and message.reference.resolved != bot.user) or random.random() < 0.35:
+#                 # The bot is mentioned in the message, reply 100% of the time
+#                 if message.attachments and message.attachments[0].filename.lower().endswith(
+#                         (".jpg", ".jpeg", ".png", ".gif")):
+#                     # The message has an attached image, pass it to the imagecaption cog
+#                     image_response = await bot.get_cog("image_caption").image_comment(message, message_content)
+#                     response = await bot.get_cog("chatbot").chat_command(message, image_response, bot)
+#                     async with message.channel.typing():
+#                         await asyncio.sleep(2)  # Simulate some work being done
+#                         await message.reply(response)
+#                 else:
+#                     response = await bot.get_cog("chatbot").chat_command(message, message_content, bot)
+#                     if random.random() < 0.35:
+#                         await message.channel.send(response)
+#                     else:
+#                         response = await bot.get_cog("chatbot").chat_command(message, message_content, bot)
+#                         async with message.channel.typing():
+#                             await asyncio.sleep(2)  # Simulate some work being done
+#                             await message.reply(response)
+#
+# # Add the message handler function to the bot
+# bot.event(on_message)
+#
+################end###########################################################
 
 async def load_cogs() -> None:
 
