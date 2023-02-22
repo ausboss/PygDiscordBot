@@ -1,5 +1,5 @@
-# cog branch
-This brand tests out image detection and the usage of cogs for easily adding in your own commands
+# Cog Branch
+This branch tests out image detection and the usage of cogs for easily adding in your own commands
 There is two versions of on_message handlers that do the same thing but to keep things simple I have commented out the one with more complex logic. The point of the bigger version is so that the bot responds more like a real person rather than a bot that responds to every single message.
 
 
