@@ -2,6 +2,8 @@
 This branch tests out image detection and the usage of cogs for easily adding in your own commands
 There is two versions of on_message handlers that do the same thing but to keep things simple I have commented out the one with more complex logic. The point of the bigger version is so that the bot responds more like a real person rather than a bot that responds to every single message.
 
+# Blip Image detection added
+![image](https://i.imgur.com/VPzquLol.png)
 
 # Discord Tavern Style Pygmalion Chatbot
 This is a discord bot that uses Pygmalion-6B and a KoboldAI url. The bot now supports json files and tavern cards and will change its name and image automatically. I plan on adding more features like group chat support, random messages, and the ability to comment on images you share.
