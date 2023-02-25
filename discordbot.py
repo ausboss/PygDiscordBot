@@ -53,6 +53,7 @@ def upload_tavern_character(img, name1, name2):
     return upload_character(json.dumps(_json), img, tavern=True)
 
 
+
 characters_folder = 'Characters'
 cards_folder = 'Cards'
 characters = []
@@ -69,7 +70,9 @@ try:
                 character_data = json.load(read_file)
                 # characters.append(character_data)
             read_file.close()
-            os.rename(os.path.join(cards_folder, filename), os.path.join(cards_folder, 'Converted', filename))
+            if not os.path.exists(f"{cards_folder}/Converted"):
+                os.makedirs(f"{cards_folder}/Converted")
+            os.rename(os.path.join(cards_folder, filename), os.path.join(f"{cards_folder}/Converted/", filename))
 except:
     pass
 
@@ -89,19 +92,27 @@ for filename in os.listdir(characters_folder):
                 character_data['char_image'] = image_file_png
             characters.append(character_data)
 
-# Print a list of characters and let the user choose one
-for i, character in enumerate(characters):
-    print(f"{i+1}. {character['char_name']}")
-selected_char = int(input("Please select a character: ")) - 1
-data = characters[selected_char]
-update_name = input("Update Bot name and pic? (y or n): ")
-# Get the character name, greeting, and image
-char_name = data["char_name"]
-char_filename = os.path.join(characters_folder, data['char_filename'])
+# # Check if chardata.json exists
+if os.path.exists('chardata.json'):
+    # Prompt the user to use the same character
+    new_character_load = input("load new character?(y/n): ")
+    update_name = "n"
+else:
+    new_character_load = "y"
 
-char_image = data.get("char_image")
+if new_character_load.lower() == "y":
+    for i, character in enumerate(characters):
+        print(f"{i+1}. {character['char_name']}")
+    selected_char = int(input("Please select a character: ")) - 1
+    data = characters[selected_char]
+    update_name = input("Update Bot name and pic? (y or n): ")
+    # Get the character name, greeting, and image
+    char_name = data["char_name"]
+    char_filename = os.path.join(characters_folder, data['char_filename'])
 
-shutil.copyfile(char_filename, "chardata.json")
+    char_image = data.get("char_image")
+
+    shutil.copyfile(char_filename, "chardata.json")
 
 @bot.event
 async def on_ready():
@@ -124,8 +135,6 @@ async def on_ready():
             else:
                 raise error
     print(f'{bot.user} has connected to Discord!')
-
-
 
 
 # This function is triggered every time a message is sent in a Discord server
