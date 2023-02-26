@@ -22,17 +22,17 @@ def upload_character(json_file, img, tavern=False):
     data = json.loads(json_file)
     outfile_name = data["char_name"]
     i = 1
-    while Path(f'characters/{outfile_name}.json').exists():
+    while Path(f'Characters/{outfile_name}.json').exists():
         outfile_name = f'{data["char_name"]}_{i:03d}'
         i += 1
     if tavern:
         outfile_name = f'TavernAI-{outfile_name}'
-    with open(Path(f'characters/{outfile_name}.json'), 'w') as f:
+    with open(Path(f'Characters/{outfile_name}.json'), 'w') as f:
         f.write(json_file)
     if img is not None:
         img = Image.open(io.BytesIO(img))
-        img.save(Path(f'characters/{outfile_name}.png'))
-    print(f'New character saved to "characters/{outfile_name}.json".')
+        img.save(Path(f'Characters/{outfile_name}.png'))
+    print(f'New character saved to "Characters/{outfile_name}.json".')
     return outfile_name
 
 def upload_tavern_character(img, name1, name2):
