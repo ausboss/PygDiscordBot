@@ -102,10 +102,10 @@ if os.path.exists('chardata.json'):
     with open("chardata.json") as read_file:
         character_data = json.load(read_file)
     # Prompt the user to use the same character
-    print(f"{Fore.CYAN}✔ Found {character_data['char_name']} data file. Loading character...{Style.RESET_ALL}")
+    print(f"\n\n{Fore.CYAN}✔ Found {character_data['char_name']} data file.{Style.RESET_ALL} Loading character...{Style.RESET_ALL}")
     # Set up the timer
     try:
-        answer = input(f"\n❔ Load a new character?{Fore.RED} (y/n) {Fore.GREEN}[n]: {Style.RESET_ALL}")
+        answer = input(f"\n❔ Load a new character?{Fore.RED} (y/n) {Fore.GREEN}[n]: {Style.RESET_ALL}\n")
     except:
         answer = "n"
 
@@ -148,7 +148,9 @@ async def on_ready():
                 pass
             else:
                 raise error
-    print(f'{Fore.GREEN}{bot.user} {Style.RESET_ALL}has connected to Discord!')
+    print(f'\n{Fore.CYAN}{bot.user.name} {Style.RESET_ALL}has connected to Discord!\n')
+    for guild in bot.guilds:
+        print(f"I'm active in {Fore.GREEN}{guild}{Style.RESET_ALL}!")
 
 async def on_message(message, bot):
     if message.author == bot.user:
