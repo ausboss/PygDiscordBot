@@ -105,7 +105,7 @@ if os.path.exists('chardata.json'):
     print(f"\n\n{Fore.CYAN}✔ Found {character_data['char_name']} data file.{Style.RESET_ALL} Loading character...{Style.RESET_ALL}")
     # Set up the timer
     try:
-        answer = input(f"\n❔ Load a new character?{Fore.RED} (y/n) {Fore.GREEN}[n]: {Style.RESET_ALL}\n")
+        answer = input(f"\n❔ Load a new character?{Fore.RED} (y/n) {Fore.GREEN}[n]: {Style.RESET_ALL}")
     except:
         answer = "n"
 
