@@ -91,7 +91,7 @@ class Chatbot:
             # add bot response to conversation history
             self.conversation_history = self.conversation_history + f'{self.char_name}: {response_text}\n'
             print(f'{self.char_name}: {response_text}')
-        with open(self.convo_filename, "a") as f:
+        with open(self.convo_filename, "a", encoding="utf-8") as f:
             f.write(f'{message.author.name}: {cleaned_message}\n')
             f.write(f'{self.char_name}: {response_text}\n')
         return response_text
@@ -118,7 +118,7 @@ class Chatbot:
             response_text = parts[0][1:]
             # add bot response to conversation history
         self.conversation_history += f'{self.char_name}: {response_text}\n'
-        with open(self.convo_filename, "a") as f:
+        with open(self.convo_filename, "a", encoding="utf-8") as f:
             f.write(f'{cleaned_message}\n')
             f.write(f'{self.char_name}: {response_text}\n')
         return response_text
