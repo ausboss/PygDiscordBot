@@ -28,9 +28,11 @@ This is a discord bot that uses Pygmalion-6B and a KoboldAI url. The bot now sup
 
 >2. Change the variables in the sample.env file and save it as .env in the same folder
 
->3. Run the bat file
+>3. Run the setup.bat file
 
->4. Choose the character
+>4. Run the run.bat file
+
+>5. Choose the character
 
 ![Choose](https://i.imgur.com/qY6ZpB8.png)
 
