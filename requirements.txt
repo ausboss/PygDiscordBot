@@ -3,4 +3,3 @@ python-dotenv
 Pillow
 discord.py
 transformers
-nltk

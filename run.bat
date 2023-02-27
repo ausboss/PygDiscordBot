@@ -1,5 +1,19 @@
 @echo off
-setlocal
+REM Check if .env file exists
+if not exist .env (
+    @echo on
+    cls
+    @echo.
+    @echo.
+    @echo.
+    echo *********************************************************************
+    echo Error: .env file not found
+    echo Please configure sample.env with your parameters and save it as .env
+    echo *********************************************************************
+    @echo.
+    @echo.
+    exit /b 1
+)
 
 REM Load environment variables from .env file
 for /f "delims=" %%a in ('type .env') do set "%%a"

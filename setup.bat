@@ -1,5 +1,5 @@
 @echo off
-
+git pull
 rem Check if python is installed
 where python
 if %errorlevel% neq 0 (
@@ -26,13 +26,11 @@ call venv\Scripts\activate
 rem Install the required packages
 pip install -r requirements.txt
 pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
-
+pip install --upgrade transformers
 rem clear console
 cls
-rem Run the code
-python discordbot.py
-
-rem Deactivate the virtual environment
-call venv\Scripts\deactivate
+echo Set up Complete 
+echo Configure your .env file then launch run.bat
+echo or run using "python discordbot.py <DISCORD_BOT_TOKEN> <ENDPOINT> <CHANNEL_ID>"
 
 pause

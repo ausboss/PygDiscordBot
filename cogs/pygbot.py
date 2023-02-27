@@ -67,11 +67,12 @@ class Chatbot:
     def reset_history(self, message):
         self.conversation_history = f"<START>\n{self.char_name}: {self.char_greeting}\n"
         return self.char_greeting
+    
 
-    async def save_conversation(self, message, message_content, bot):
-        # add user response to conversation history
-        self.conversation_history += f'{message.author.name}: {message_content}\n'
-        print(f'{message.author.name}: {message_content}')
+    async def save_conversation(self, message, cleaned_message):
+        
+        self.conversation_history += f'{message.author.name}: {cleaned_message}\n'
+        print(f'{message.author.name}: {cleaned_message}')
         # format prompt
         prompt = {
             "prompt": self.character_info + '\n'.join(
@@ -91,13 +92,13 @@ class Chatbot:
             self.conversation_history = self.conversation_history + f'{self.char_name}: {response_text}\n'
             print(f'{self.char_name}: {response_text}')
         with open(self.convo_filename, "a") as f:
-            f.write(f'{message.author.name}: {message_content}\n')
+            f.write(f'{message.author.name}: {cleaned_message}\n')
             f.write(f'{self.char_name}: {response_text}\n')
         return response_text
 
-    async def batch_save_conversation(self, message):
+    async def batch_save_conversation(self, cleaned_message):
         # add user message to conversation history
-        self.conversation_history += f"{message}\n"
+        self.conversation_history += f"{cleaned_message}\n"
         print(f'self.conversation_history: {self.conversation_history}')
 
         # format prompt
@@ -118,7 +119,7 @@ class Chatbot:
             # add bot response to conversation history
         self.conversation_history += f'{self.char_name}: {response_text}\n'
         with open(self.convo_filename, "a") as f:
-            f.write(f'{message}\n')
+            f.write(f'{cleaned_message}\n')
             f.write(f'{self.char_name}: {response_text}\n')
         return response_text
 
@@ -130,9 +131,25 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         self.endpoint = bot.endpoint
         self.chatbot = Chatbot("chardata.json", chatlog_dir=chatlog_dir, endpoint=self.endpoint)
 
+    # converts user ids and emoji ids
+    async def replace_user_mentions(self, content):
+        user_ids = re.findall(r'<@(\d+)>', content)
+        for user_id in user_ids:
+            user = await self.bot.fetch_user(int(user_id))
+            if user:
+                display_name = user.display_name
+                content = content.replace(f"<@{user_id}>", display_name)
 
+        emojis = re.findall(r'<:[^:]+:(\d+)>', content)
+        for emoji_id in emojis:
+            if ':' in content:
+                emoji_name = content.split(':')[1]
+                content = content.replace(f"<:{emoji_name}:{emoji_id}>", f"[{emoji_name} emoji]")
+        return content
+
+    # Normal Chat handler 
     @commands.command(name="chat")
-    async def chat_command(self, message, message_content, bot) -> None:
+    async def chat_command(self, message, message_content) -> None:
         # Get the gnarly response message from the chatbot and return it, dude!
         if message.guild is not None:
             server_name = message.channel.name
@@ -146,9 +163,11 @@ class ChatbotCog(commands.Cog, name="chatbot"):
             self.chatbot.set_convo_filename(chatlog_filename)
 
         # Save the convo and get a sweet response, my man!
-        response = await self.chatbot.save_conversation(message, message_content, bot)
+        cleaned_message = await self.replace_user_mentions(message_content)
+        response = await self.chatbot.save_conversation(message, cleaned_message)
         return response
-
+    
+    # Batch chat command for experimental cog extension
     @commands.command(name="batch_chat")
     async def batch_chat_command(self, channel, message_content) -> None:
         # get response message from chatbot and return it

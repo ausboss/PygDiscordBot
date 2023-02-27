@@ -62,4 +62,3 @@ class ImageCaptionCog(commands.Cog, name="image_caption"):
 
 async def setup(bot):
     await bot.add_cog(ImageCaptionCog(bot))
-
