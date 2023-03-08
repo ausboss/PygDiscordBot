@@ -8,6 +8,7 @@ __pycache__
 backend/oasst-openapi.json
 .env
 .venv
+Cards
 Characters
-chardata.json
 chatlog_dir
+chardata.json
