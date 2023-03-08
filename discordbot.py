@@ -1,39 +1,58 @@
-import requests
 import json
 import os
 import io
 import discord
 from PIL import Image
 from pathlib import Path
-import re
 import base64
-from dotenv import load_dotenv
 from discord.ext import commands
-# get .env variables
-load_dotenv()
-DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-ENDPOINT = os.getenv("ENDPOINT")
-PERIOD_IGNORE = os.getenv("PERIOD_IGNORE")
-def split_text(text):
-    parts = re.split(r'\n[a-zA-Z]', text)
-    return parts
+from discord.ext.commands import Bot
+import asyncio
+import shutil
+import sys
+import logging
+
+if __name__ == '__main__':
+    if len(sys.argv) < 4:
+        print('Usage: python discordbot.py <DISCORD_BOT_TOKEN> <ENDPOINT> <CHANNEL_ID>')
+        sys.exit(1)
+    DISCORD_BOT_TOKEN = sys.argv[1]
+    ENDPOINT = sys.argv[2]
+    CHANNEL_ID = sys.argv[3]
+# Access environment variables like this
+
+
+intents = discord.Intents.all()
+bot = Bot(command_prefix="/", intents=intents, help_command=None)
+bot.endpoint = ENDPOINT
+bot.chatlog_dir = "chatlog_dir"
+bot.endpoint_connected = False
+bot.channel_id = CHANNEL_ID
+bot.guild_ids = [int(x) for x in sys.argv[3].split(",")]
+bot.debug = True
+bot.char_name = ""
+characters_folder = 'Characters'
+cards_folder = 'Cards'
+characters = []
+
 def upload_character(json_file, img, tavern=False):
     json_file = json_file if type(json_file) == str else json_file.decode('utf-8')
     data = json.loads(json_file)
     outfile_name = data["char_name"]
     i = 1
-    while Path(f'Characters/{outfile_name}.json').exists():
+    while Path(f'{characters_folder}/{outfile_name}.json').exists():
         outfile_name = f'{data["char_name"]}_{i:03d}'
         i += 1
     if tavern:
         outfile_name = f'TavernAI-{outfile_name}'
-    with open(Path(f'Characters/{outfile_name}.json'), 'w') as f:
+    with open(Path(f'{characters_folder}/{outfile_name}.json'), 'w') as f:
         f.write(json_file)
     if img is not None:
         img = Image.open(io.BytesIO(img))
-        img.save(Path(f'Characters/{outfile_name}.png'))
-    print(f'New character saved to "Characters/{outfile_name}.json".')
+        img.save(Path(f'{characters_folder}/{outfile_name}.png'))
+    print(f'New character saved to "{characters_folder}/{outfile_name}.json".')
     return outfile_name
+
 
 def upload_tavern_character(img, name1, name2):
     _img = Image.open(io.BytesIO(img))
@@ -44,32 +63,8 @@ def upload_tavern_character(img, name1, name2):
     _json['example_dialogue'] = _json['example_dialogue'].replace('{{user}}', name1).replace('{{char}}', _json['char_name'])
     return upload_character(json.dumps(_json), img, tavern=True)
 
-def get_prompt(conversation_history, user, text):
-    return {
-        "prompt": conversation_history + f"{user}: {text}\n{char_name}:",
-        "use_story": False,
-        "use_memory": False,
-        "use_authors_note": False,
-        "use_world_info": False,
-        "max_context_length": 1818,
-        "max_length": 180,
-        "rep_pen": 1.03,
-        "rep_pen_range": 1024,
-        "rep_pen_slope": 0.9,
-        "temperature": 0.98,
-        "tfs": 0.9,
-        "top_a": 0,
-        "top_k": 0,
-        "top_p": 0.9,
-        "typical": 1,
-        "sampler_order": [6, 0, 1, 2, 3, 4, 5],
-        "frmttriminc": True,
-        "frmtrmblln": True
-    }
 
-characters_folder = 'Characters'
-cards_folder = 'Cards'
-characters = []
+# CONVERT CARDS
 # Check the Cards folder for cards and convert them to characters
 try:
     for filename in os.listdir(cards_folder):
@@ -83,14 +78,20 @@ try:
                 character_data = json.load(read_file)
                 # characters.append(character_data)
             read_file.close()
-            os.rename(os.path.join(cards_folder, filename), os.path.join(cards_folder, 'Converted', filename))
+            if not os.path.exists(f"{cards_folder}/Converted"):
+                os.makedirs(f"{cards_folder}/Converted")
+            os.rename(os.path.join(cards_folder, filename), os.path.join(f"{cards_folder}/Converted/", filename))
 except:
     pass
+
+
 # Load character data from JSON files in the character folder
 for filename in os.listdir(characters_folder):
     if filename.endswith('.json'):
         with open(os.path.join(characters_folder, filename)) as read_file:
             character_data = json.load(read_file)
+            # Add the filename as a key in the character data dictionary
+            character_data['char_filename'] = filename
             # Check if there is a corresponding image file for the character
             image_file_jpg = f"{os.path.splitext(filename)[0]}.jpg"
             image_file_png = f"{os.path.splitext(filename)[0]}.png"
@@ -99,75 +100,112 @@ for filename in os.listdir(characters_folder):
             elif os.path.exists(os.path.join(characters_folder, image_file_png)):
                 character_data['char_image'] = image_file_png
             characters.append(character_data)
-# Print a list of characters and let the user choose one
-for i, character in enumerate(characters):
-    print(f"{i+1}. {character['char_name']}")
-selected_char = int(input("Please select a character: ")) - 1
-data = characters[selected_char]
-# Get the character name, greeting, and image
-char_name = data["char_name"]
-char_greeting = data["char_greeting"]
-char_dialogue = data["char_greeting"]
-char_image = data.get("char_image")
 
-num_lines_to_keep = 20
-intents = discord.Intents.all()
-bot = commands.Bot(command_prefix='/', intents=intents)
-conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
-                        f"World Scenario: {data['world_scenario']}\n" + \
-                        f'<START>\n' + \
-                        f'{char_dialogue}' + \
-                        f'<START>\n' + \
-                        f'f"{char_name}: {char_greeting}\n'
+# Character selection
+# Check if chardata.json exists
+if os.path.exists('chardata.json'):
+    with open("chardata.json") as read_file:
+        character_data = json.load(read_file)
+    # Prompt the user to use the same character
+    print(f"Last Character used: {character_data['char_name']}")
+    # Set up the timer
+    try:
+        answer = input(f"\nUse this character? (y/n) [y]: ")
+    except:
+        answer = "y"
+
+else:
+    answer = "n"
+
+if answer.lower() == "n":
+    for i, character in enumerate(characters):
+        print(f"{i+1}. {character['char_name']}")
+    selected_char = None
+    while selected_char is None:
+        try:
+            selected_char = int(input(f"\n\nPlease select a character: ")) - 1
+            if selected_char < 0 or selected_char >= len(characters):
+                raise ValueError
+        except ValueError:
+            print("Invalid input. Please enter a number between 1 and", len(characters))
+            selected_char = None
+    data = characters[selected_char]
+    update_name = None
+    while update_name not in ["y", "n"]:
+        update_name = input("Update Bot name and pic? (y or n): ").lower()
+        if update_name not in ["y", "n"]:
+            print("Invalid input. Please enter 'y' or 'n'.")
+    # Get the character name, greeting, and image
+    char_name = data["char_name"]
+    char_filename = os.path.join(characters_folder, data['char_filename'])
+    char_image = data.get("char_image")
+    shutil.copyfile(char_filename, "chardata.json")
+else:
+    update_name = "n"
+
+
+# on ready event that will update the character name and picture if you chose yes
 @bot.event
 async def on_ready():
+    if update_name.lower() == "y":
+        try:
+            with open(f"Characters/{char_image}", 'rb') as f:
+                avatar_data = f.read()
+            await bot.user.edit(username=char_name, avatar=avatar_data)
+        except FileNotFoundError:
+            with open(f"Characters/default.png", 'rb') as f:
+                avatar_data = f.read()
+            await bot.user.edit(username=char_name, avatar=avatar_data)
+            print(f"No image found for {char_name}. Setting image to default.")
+        except discord.errors.HTTPException as error:
+            if error.code == 50035 and 'Too many users have this username, please try another' in error.text:
+                new_name = input('Too many users have this username, Enter a new name(tip: üse án àccent lèttèr ): ')
+                await bot.user.edit(username=new_name, avatar=avatar_data)
+            elif error.code == 50035 and 'You are changing your username or Discord Tag too fast. Try again later.' in error.text:
+                pass
+            else:
+                raise error
+    print(f"{bot.user.name} has connected to:")
+
+    for items in bot.guild_ids:
+        try:
+            # get the channel object from the channel ID
+            channel = bot.get_channel(int(items))
+            # get the guild object from the channel object
+            guild = channel.guild
+            # check that the channel is a text channel
+            if isinstance(channel, discord.TextChannel):
+                channel_name = channel.name
+                print(f"{guild.name} \ {channel_name}")
+            else:
+                print(f"Channel with ID {bot.channel_id} is not a text channel")
+        except AttributeError:
+            print(
+                "\n\n\n\nERROR: Unable to retrieve channel from .env \nPlease make sure you're using a valid channel ID, not a server ID.")
+
+
+# COG LOADER
+async def load_cogs() -> None:
+    for file in os.listdir(f"{os.path.realpath(os.path.dirname(__file__))}/cogs"):
+        if file.endswith(".py"):
+            extension = file[:-3]
+            try:
+                await bot.load_extension(f"cogs.{extension}")
+                if extension == 'pygbot':
+                    bot.endpoint_connected = True
+            except commands.ExtensionError as e:
+                if extension == 'pygbot':
+                    bot.endpoint_connected = False
+                if not bot.debug:
+                    logging.error(f"\n\nIssue with ENDPOINT. Please check your ENDPOINT in the .env file")
+                else:
+                    exception = f"{type(e).__name__}: {e}"
+                    print(f"Failed to load extension {extension}\n{exception}")
+
+
+asyncio.run(load_cogs())
+if bot.endpoint_connected:
     try:
-        with open(f"Characters/{char_image}", 'rb') as f:
-            avatar_data = f.read()
-        await bot.user.edit(username=char_name, avatar=avatar_data)
-    except FileNotFoundError:
-        with open(f"Characters/default.png", 'rb') as f:
-            avatar_data = f.read()
-        await bot.user.edit(username=char_name, avatar=avatar_data)
-        print(f"No image found for {char_name}. Setting image to default.")
-    except discord.errors.HTTPException as error:
-        if error.code == 50035 and 'Too many users have this username, please try another' in error.text:
-            await bot.user.edit(username=char_name + "BOT", avatar=avatar_data)
-        elif error.code == 50035 and 'You are changing your username or Discord Tag too fast. Try again later.' in error.text:
-            pass
-        else:
-            raise error
-    print(f'{bot.user} has connected to Discord!')
-@bot.command()
-async def reset(ctx):
-    global conversation_history
-    conversation_history = f"{char_name}'s Persona: {data['char_persona']}\n" + \
-                            f"World Scenario: {data['world_scenario']}\n" + \
-                            f'<START>\n' + \
-                            f'{char_dialogue}' + \
-                            f'<START>\n' + \
-                            f'f"{char_name}: {char_greeting}\n'
-    await ctx.send("Conversation history has been reset.")
-
-@bot.event
-async def on_message(message):
-    if PERIOD_IGNORE and message.content.startswith(".") and not message.content.startswith("/"):
-        return
-    else:
-        global conversation_history
-        if message.author == bot.user:
-            return
-        your_message = message.content
-        print(f"{message.author.name}:{your_message}")
-        prompt = get_prompt(conversation_history,message.author.name, message.content)
-        print(prompt)
-        response = requests.post(f"{ENDPOINT}/api/v1/generate", json=prompt)
-        if response.status_code == 200:
-            results = response.json()['results']
-            text = results[0]['text']
-            response_text = split_text(text)[0]
-            await message.channel.send(response_text)
-            conversation_history = conversation_history + f'{char_name}: {response_text}\n'
-
-
-bot.run(DISCORD_BOT_TOKEN)
+        bot.run(DISCORD_BOT_TOKEN)
+    except discord.errors.LoginFailure:
+        print("\n\n\n\nThere is an error with the Discord Bot token. Please check your .env file")

@@ -1,33 +1,35 @@
 @echo off
 
-rem Check if python is installed
-where python
-if %errorlevel% neq 0 (
-    echo Python is not installed on this computer. Please install Python and run this script again.
+REM Set the console window size to 80 columns by 25 lines
+mode con lines=25
+
+REM Check if .env file exists
+if not exist .env (
+    @echo on
+    cls
+    @echo.
+    @echo.
+    @echo.
+    echo *********************************************************************
+    echo Error: .env file not found
+    echo Please configure sample.env with your parameters and save it as .env
+    echo *********************************************************************
+    @echo.
+    @echo.
     pause
-    exit /b
+    exit /b 1
 )
 
-rem Check if virtualenv is installed
-pip show virtualenv
-if %errorlevel% neq 0 (
-    echo virtualenv is not installed on this computer. Installing virtualenv...
-    pip install virtualenv
-)
+REM Activate the virtual environment
+call venv\Scripts\activate.bat
 
-rem Create the virtual environment
-virtualenv venv
+REM Load environment variables from .env file
+for /f "delims=" %%a in ('type .env') do set "%%a"
 
-rem Activate the virtual environment
-call venv\Scripts\activate
+REM Run the Python script with the environment variables as arguments
+python discordbot.py %DISCORD_BOT_TOKEN% %ENDPOINT% %CHANNEL_ID%
 
-rem Install the required packages
-pip install -r requirements.txt
-
-rem Run the code
-python discordbot.py
-
-rem Deactivate the virtual environment
-call venv\Scripts\deactivate
+REM Deactivate the virtual environment
+call venv\Scripts\deactivate.bat
 
 pause
