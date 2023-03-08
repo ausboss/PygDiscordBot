@@ -23,10 +23,10 @@ class DevCommands(commands.Cog, name="dev_commands"):
     async def sync(self, ctx) -> None:
         fmt = []
         for guild_id in self.guild_ids:
-            guild = ctx.bot.get_guild(int(guild_id))
+            guild = self.bot.get_guild(int(guild_id))
             if guild is None:
                 continue
-            result = await ctx.bot.tree.sync(guild=guild)
+            result = await ctx.bot.tree.copy_global_to(guild=guild)
             fmt.extend(result)
         if fmt:
             await ctx.send(embed=embedder(f"Synced {len(fmt)} commands to the current server."), delete_after=6)

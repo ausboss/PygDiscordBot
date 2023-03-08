@@ -2,6 +2,7 @@ import re
 import json
 import requests
 import discord
+from discord import app_commands
 from discord.ext import commands
 import os
 
@@ -87,6 +88,34 @@ class Chatbot:
 
             return response_text
 
+    async def follow_up(self):
+        self.conversation_history = self.conversation_history
+        self.prompt = {
+            "prompt": self.character_info + '\n'.join(
+                self.conversation_history.split('\n')[-self.num_lines_to_keep:]) + f"{self.char_name}:",
+        }
+        print(self.prompt)
+        response = requests.post(f"{self.endpoint}/api/v1/generate", json=self.prompt)
+        print(response.json()['results'])
+        # check if the request was successful
+        if response.status_code == 200:
+            # Get the results from the response
+            results = response.json()['results']
+            response_list = [line for line in results[0]['text'].split("\n")]
+            result = [response_list[0]]
+            for item in response_list[1:]:
+                if self.char_name in item:
+                    result.append(item)
+                else:
+                    break
+            new_list = [item.replace(self.char_name + ": ", '\n') for item in result]
+            response_text = ''.join(new_list)
+            self.conversation_history = self.conversation_history + f'{self.char_name}: {response_text}\n'
+            with open(self.convo_filename, "a", encoding="utf-8") as f:
+                f.write(f'{self.char_name}: {response_text}\n')  # add a separator between
+            return response_text
+
+
 
 class ChatbotCog(commands.Cog, name="chatbot"):
     def __init__(self, bot):
@@ -128,6 +157,21 @@ class ChatbotCog(commands.Cog, name="chatbot"):
             await self.chatbot.set_convo_filename(chatlog_filename)
         response = await self.chatbot.save_conversation(message, await self.replace_user_mentions(message_content))
         return response
+
+    @app_commands.command(name="followup", description="Make the bot send another message")
+    async def followup(self, interaction: discord.Interaction) -> None:
+        if interaction.guild:
+            server_name = interaction.channel.name
+        else:
+            server_name = interaction.author.name
+        chatlog_filename = os.path.join(self.chatlog_dir, f"{self.chatbot.char_name}_{server_name}_chatlog.log")
+        if interaction.guild and self.chatbot.convo_filename != chatlog_filename or \
+                not interaction.guild and self.chatbot.convo_filename != chatlog_filename:
+            await self.chatbot.set_convo_filename(chatlog_filename)
+        await interaction.response.defer()
+        await interaction.delete_original_response()
+        print(f"interaction.id: {interaction.channel.id}")
+        await interaction.channel.send(await self.chatbot.follow_up())
 
 async def setup(bot):
     # add chatbot cog to bot
