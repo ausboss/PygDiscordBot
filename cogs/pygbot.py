@@ -89,7 +89,6 @@ class Chatbot:
             return response_text
 
     async def follow_up(self):
-        self.conversation_history = self.conversation_history
         self.prompt = {
             "prompt": self.character_info + '\n'.join(
                 self.conversation_history.split('\n')[-self.num_lines_to_keep:]) + f"{self.char_name}:",
@@ -101,7 +100,7 @@ class Chatbot:
         if response.status_code == 200:
             # Get the results from the response
             results = response.json()['results']
-            response_list = [line for line in results[0]['text'].split("\n")]
+            response_list = [line for line in results[0]['text'][1:].split("\n")]
             result = [response_list[0]]
             for item in response_list[1:]:
                 if self.char_name in item:
@@ -143,7 +142,9 @@ class ChatbotCog(commands.Cog, name="chatbot"):
                 content = content.replace(f"<:{emoji_name}:{emoji_id}>", f":{emoji_name}:")
         return content
 
-    # Normal Chat handler 
+
+
+    # Normal Chat handler
     @commands.command(name="chat")
     async def chat_command(self, message, message_content) -> None:
         # Get the gnarly response message from the chatbot and return it, dude!
@@ -170,8 +171,53 @@ class ChatbotCog(commands.Cog, name="chatbot"):
             await self.chatbot.set_convo_filename(chatlog_filename)
         await interaction.response.defer()
         await interaction.delete_original_response()
-        print(f"interaction.id: {interaction.channel.id}")
         await interaction.channel.send(await self.chatbot.follow_up())
+
+
+
+    @app_commands.command(name="regenerate", description="regenerate last message")
+    async def regenerate(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer()
+        await interaction.delete_original_response()
+        if interaction.guild:
+            server_name = interaction.channel.name
+        else:
+            server_name = interaction.author.name
+        chatlog_filename = os.path.join(self.chatlog_dir, f"{self.chatbot.char_name}_{server_name}_chatlog.log")
+        if interaction.guild and self.chatbot.convo_filename != chatlog_filename or \
+                not interaction.guild and self.chatbot.convo_filename != chatlog_filename:
+            await self.chatbot.set_convo_filename(chatlog_filename)
+        # Get the last message sent by the bot in the channel
+        async for message in interaction.channel.history(limit=1):
+            if message.author == self.bot.user:
+                await message.delete()
+                lines = self.chatbot.conversation_history.splitlines()
+                for i in range(len(lines) - 1, -1, -1):
+                    if lines[i].startswith("Tensor:"):
+                        lines[i] = "Tensor:"
+                        self.chatbot.conversation_history = "\n".join(lines)
+                        self.chatbot.conversation_history = self.chatbot.conversation_history
+                        break
+                print(f"string after: {repr(self.chatbot.conversation_history)}")
+                break  # Exit the loop after deleting the message
+        with open(self.chatbot.convo_filename, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            # Find the last line that matches "Tensor: {message.content}"
+            last_line_num_to_overwrite = None
+            for i in range(len(lines) - 1, -1, -1):
+                if f"Tensor: {message.content}" in lines[i]:
+                    last_line_num_to_overwrite = i
+                    break
+            if last_line_num_to_overwrite is not None:
+                lines[last_line_num_to_overwrite] = ""
+                # Modify the last line that matches "Tensor: {message.content}"
+            with open(self.chatbot.convo_filename, "w", encoding="utf-8") as f:
+                f.writelines(lines)
+                f.close()
+        await interaction.channel.send(await self.chatbot.follow_up())
+
+
+
 
 async def setup(bot):
     # add chatbot cog to bot

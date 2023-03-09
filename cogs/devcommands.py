@@ -19,24 +19,14 @@ class DevCommands(commands.Cog, name="dev_commands"):
     async def on_ready(self):
         print("Dev Commands cog loaded.")
 
-    @commands.command()
-    async def sync(self, ctx) -> None:
-        fmt = []
-        for guild_id in self.guild_ids:
-            guild = self.bot.get_guild(int(guild_id))
-            if guild is None:
-                continue
-            result = await ctx.bot.tree.copy_global_to(guild=guild)
-            fmt.extend(result)
-        if fmt:
-            await ctx.send(embed=embedder(f"Synced {len(fmt)} commands to the current server."), delete_after=6)
-        else:
-            await ctx.send(embed=embedder("No commands to sync."), delete_after=6)
-        return
+    @commands.command(name='sync', description='sync up')
+    async def sync(self, interaction: discord.Interaction) -> None:
+        await self.bot.tree.sync()
+        print("synced")
 
     @app_commands.command(name="test", description="Test command")
     async def test(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Test passed.")
+        await interaction.response.send_message("Test passed.", delete_after=3)
 
     @app_commands.command(name="reload", description="reload cog")
     async def reload(self, interaction: discord.Interaction, cog: str):
