@@ -13,7 +13,7 @@ model_config = {
     "use_world_info": False,
     "use_memory": False,
     "max_context_length": 2400,
-    "max_length": 80,
+    "max_length": 120,
     "rep_pen": 1.02,
     "rep_pen_range": 1024,
     "rep_pen_slope": 0.9,
@@ -23,6 +23,14 @@ model_config = {
     "typical": 1,
     "sampler_order": [6, 0, 1, 2, 3, 4, 5]
 }
+
+def embedder(msg):
+    embed = discord.Embed(
+            description=f"{msg}",
+            color=0x9C84EF
+        )
+    return embed
+
 
 class Chatbot:
     def __init__(self, char_filename, bot):
@@ -89,6 +97,7 @@ class Chatbot:
             return response_text
 
     async def follow_up(self):
+        self.conversation_history = self.conversation_history
         self.prompt = {
             "prompt": self.character_info + '\n'.join(
                 self.conversation_history.split('\n')[-self.num_lines_to_keep:]) + f"{self.char_name}:",
@@ -178,7 +187,6 @@ class ChatbotCog(commands.Cog, name="chatbot"):
     @app_commands.command(name="regenerate", description="regenerate last message")
     async def regenerate(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer()
-        await interaction.delete_original_response()
         if interaction.guild:
             server_name = interaction.channel.name
         else:
@@ -200,21 +208,52 @@ class ChatbotCog(commands.Cog, name="chatbot"):
                         break
                 print(f"string after: {repr(self.chatbot.conversation_history)}")
                 break  # Exit the loop after deleting the message
+        await interaction.delete_original_response()
         with open(self.chatbot.convo_filename, "r", encoding="utf-8") as f:
             lines = f.readlines()
+            try:
             # Find the last line that matches "Tensor: {message.content}"
-            last_line_num_to_overwrite = None
-            for i in range(len(lines) - 1, -1, -1):
-                if f"Tensor: {message.content}" in lines[i]:
-                    last_line_num_to_overwrite = i
-                    break
-            if last_line_num_to_overwrite is not None:
-                lines[last_line_num_to_overwrite] = ""
-                # Modify the last line that matches "Tensor: {message.content}"
-            with open(self.chatbot.convo_filename, "w", encoding="utf-8") as f:
-                f.writelines(lines)
-                f.close()
+                last_line_num_to_overwrite = None
+                for i in range(len(lines) - 1, -1, -1):
+                    if f"Tensor: {message.content}" in lines[i]:
+                        last_line_num_to_overwrite = i
+                        break
+                if last_line_num_to_overwrite is not None:
+                    lines[last_line_num_to_overwrite] = ""
+                    # Modify the last line that matches "Tensor: {message.content}"
+                with open(self.chatbot.convo_filename, "w", encoding="utf-8") as f:
+                    f.writelines(lines)
+                    f.close()
+            except:
+                pass
         await interaction.channel.send(await self.chatbot.follow_up())
+        
+    async def api_get(self, parameter):
+        response = requests.get(f"{self.chatbot.endpoint}/api/v1/config/{parameter}")
+        return response.json()
+
+    async def api_put(self, parameter, value):
+        response = requests.put(f"{self.chatbot.endpoint}/api/v1/config/{parameter}", json={"value": value})
+        return response.json()
+
+    @app_commands.command(name="koboldget", description="Get the value of a parameter from the API")
+    async def koboldget(self, interaction: discord.Interaction, parameter: str):
+        try:
+            value = await self.api_get(parameter)
+            print(f"Parameter '{parameter}' value: {value}")
+            await interaction.response.send_message(embed=embedder(f"Parameter {parameter} value: {value}"),
+                                                    delete_after=3)
+        except Exception as e:
+            await interaction.response.send_message(embed=embedder(f"Error: {e}"), delete_after=12)
+
+    @app_commands.command(name="koboldput", description="Set the value of a parameter in the API")
+    async def koboldput(self, interaction: discord.Interaction, parameter: str, value: str):
+        try:
+            result = await self.api_put(parameter, value)
+            await interaction.response.send_message(embed=embedder(f"Parameter '{parameter}' updated to: {value}"),
+                                                    delete_after=3)
+        except Exception as e:
+            await interaction.response.send_message(embed=embedder(f"Error: {e}"), delete_after=12)
 
 
 
