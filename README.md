@@ -1,6 +1,8 @@
 # Discord Tavern Style Pygmalion Chatbot
 This is a discord bot that uses Pygmalion-6B and a KoboldAI url. The bot now supports json files and tavern cards and will change its name and image automatically.
 
+# Official Discord Server
+https://discord.gg/uvZtCRjYKr
 
 # Blip Image detection added
 ![image](https://i.imgur.com/VPzquLol.png)
