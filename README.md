@@ -23,7 +23,7 @@ https://discord.gg/Pdhd7dEqHp
 
 Discord only allows bots to be renamed twice per hour.
 
-[Get more Characters](https://booru.plus/+pygmalion)
+
 # More Info: 
 
 DISORD_BOT_TOKEN: You can get this from the discord developers portal. [Guide for setting that up](https://rentry.org/discordbotguide)
