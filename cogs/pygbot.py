@@ -156,7 +156,6 @@ class ChatbotCog(commands.Cog, name="chatbot"):
     # Normal Chat handler
     @commands.command(name="chat")
     async def chat_command(self, message, message_content) -> None:
-        # Get the gnarly response message from the chatbot and return it, dude!
         if message.guild:
             server_name = message.channel.name
         else:
@@ -201,8 +200,8 @@ class ChatbotCog(commands.Cog, name="chatbot"):
                 await message.delete()
                 lines = self.chatbot.conversation_history.splitlines()
                 for i in range(len(lines) - 1, -1, -1):
-                    if lines[i].startswith("Tensor:"):
-                        lines[i] = "Tensor:"
+                    if lines[i].startswith(f"{self.chatbot.char_name}:"):
+                        lines[i] = f"{self.chatbot.char_name}:"
                         self.chatbot.conversation_history = "\n".join(lines)
                         self.chatbot.conversation_history = self.chatbot.conversation_history
                         break
@@ -213,19 +212,17 @@ class ChatbotCog(commands.Cog, name="chatbot"):
             lines = f.readlines()
             try:
             # Find the last line that matches "Tensor: {message.content}"
-                last_line_num_to_overwrite = None
-                for i in range(len(lines) - 1, -1, -1):
-                    if f"Tensor: {message.content}" in lines[i]:
-                        last_line_num_to_overwrite = i
-                        break
-                if last_line_num_to_overwrite is not None:
-                    lines[last_line_num_to_overwrite] = ""
-                    # Modify the last line that matches "Tensor: {message.content}"
-                with open(self.chatbot.convo_filename, "w", encoding="utf-8") as f:
-                    f.writelines(lines)
-                    f.close()
-            except:
-                pass
+            last_line_num_to_overwrite = None
+            for i in range(len(lines) - 1, -1, -1):
+                if f"{self.chatbot.char_name}: {message.content}" in lines[i]:
+                    last_line_num_to_overwrite = i
+                    break
+            if last_line_num_to_overwrite is not None:
+                lines[last_line_num_to_overwrite] = ""
+                # Modify the last line that matches "self.chatbot.char_name: {message.content}"
+            with open(self.chatbot.convo_filename, "w", encoding="utf-8") as f:
+                f.writelines(lines)
+                f.close()
         await interaction.channel.send(await self.chatbot.follow_up())
         
     async def api_get(self, parameter):

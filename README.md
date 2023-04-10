@@ -40,4 +40,4 @@ Right now these commands are mostly helpful for developers. Use /sync to force t
 | ---            | ---              | ---                                                                                     |
 | Sync Commands  | `/sync`          | Needed to make the commands appear right away.                                         |
 | Reload Cog     | `/reload <name>` | Lets you reload a specific cog instead of needing to restart everything.               |
-
+|Regenerate Last Message| '/regenerate'| Removes the last message and will generate another one |
