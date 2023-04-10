@@ -183,9 +183,11 @@ class ChatbotCog(commands.Cog, name="chatbot"):
 
 
 
+
     @app_commands.command(name="regenerate", description="regenerate last message")
     async def regenerate(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer()
+        await interaction.delete_original_response()
         if interaction.guild:
             server_name = interaction.channel.name
         else:
@@ -207,11 +209,9 @@ class ChatbotCog(commands.Cog, name="chatbot"):
                         break
                 print(f"string after: {repr(self.chatbot.conversation_history)}")
                 break  # Exit the loop after deleting the message
-        await interaction.delete_original_response()
         with open(self.chatbot.convo_filename, "r", encoding="utf-8") as f:
             lines = f.readlines()
-            try:
-            # Find the last line that matches "Tensor: {message.content}"
+            # Find the last line that matches "self.chatbot.char_name: {message.content}"
             last_line_num_to_overwrite = None
             for i in range(len(lines) - 1, -1, -1):
                 if f"{self.chatbot.char_name}: {message.content}" in lines[i]:
@@ -224,6 +224,7 @@ class ChatbotCog(commands.Cog, name="chatbot"):
                 f.writelines(lines)
                 f.close()
         await interaction.channel.send(await self.chatbot.follow_up())
+
         
     async def api_get(self, parameter):
         response = requests.get(f"{self.chatbot.endpoint}/api/v1/config/{parameter}")
