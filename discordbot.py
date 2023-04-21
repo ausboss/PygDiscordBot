@@ -25,6 +25,8 @@ if __name__ == '__main__':
 intents = discord.Intents.all()
 bot = Bot(command_prefix="/", intents=intents, help_command=None)
 bot.endpoint = ENDPOINT
+if len(bot.endpoint.split("/api")) > 0:
+    bot.endpoint = bot.endpoint.split("/api")[0]
 bot.chatlog_dir = "chatlog_dir"
 bot.endpoint_connected = False
 bot.channel_id = CHANNEL_ID
