@@ -28,7 +28,9 @@ Discord only allows bots to be renamed twice per hour.
 
 DISORD_BOT_TOKEN: You can get this from the discord developers portal. [Guide for setting that up](https://rentry.org/discordbotguide)
 
-ENDPOINT: Set the endpoint variable with the KoboldAI url you get from this [google collab](https://colab.research.google.com/drive/1ZvYq4GmjfsyIkcTQcrBhSFXs8vQLLMAS). Or if you have a beefy gpu you can run kobold locally. https://github.com/KoboldAI/KoboldAI-Client
+~~ENDPOINT: Set the endpoint variable with the KoboldAI url you get from this [google collab](https://colab.research.google.com/drive/1ZvYq4GmjfsyIkcTQcrBhSFXs8vQLLMAS). Or if you have a beefy gpu you can run kobold locally. https://github.com/KoboldAI/KoboldAI-Client~~
+
+UPDATE: Google has killed all the colabs. You will have to use something else for the kobold url. If you have a pretty good gpu you might be able to run it locally with kobold. This guide might help https://docs.alpindale.dev/local-installation-(gpu)/kobold/
 
 Look for this url in the google collab output:
 
