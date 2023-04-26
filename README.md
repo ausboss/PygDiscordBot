@@ -32,9 +32,6 @@ DISORD_BOT_TOKEN: You can get this from the discord developers portal. [Guide fo
 
 UPDATE: Google has killed all the colabs. You will have to use something else for the kobold url. If you have a pretty good gpu you might be able to run it locally with kobold. This guide might help https://docs.alpindale.dev/local-installation-(gpu)/kobold/
 
-Look for this url in the google collab output:
-
-![url example](https://raytracing-benchmarks.are-really.cool/5utGhMj.png)
 
 # Slash Commands: 
 Right now these commands are mostly helpful for developers. Use /sync to force the slash commands to show up if you don't see them.
