@@ -90,7 +90,7 @@ except:
 # Load character data from JSON files in the character folder
 for filename in os.listdir(characters_folder):
     if filename.endswith('.json'):
-        with open(os.path.join(characters_folder, filename)) as read_file:
+        with open(os.path.join(characters_folder, filename), encoding='utf-8') as read_file:
             character_data = json.load(read_file)
             # Add the filename as a key in the character data dictionary
             character_data['char_filename'] = filename
@@ -106,7 +106,7 @@ for filename in os.listdir(characters_folder):
 # Character selection
 # Check if chardata.json exists
 if os.path.exists('chardata.json'):
-    with open("chardata.json") as read_file:
+    with open("chardata.json", encoding='utf-8') as read_file:
         character_data = json.load(read_file)
     # Prompt the user to use the same character
     print(f"Last Character used: {character_data['char_name']}")
