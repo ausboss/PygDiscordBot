@@ -1,8 +1,8 @@
 # Discord Tavern Style Pygmalion Chatbot
 This is a discord bot that uses Pygmalion-6B and a KoboldAI url. The bot now supports json files and tavern cards and will change its name and image automatically.
 
-# Official Discord Server
-There is no longer an Official Discord Server
+
+
 
 # Blip Image detection added
 ![image](https://i.imgur.com/VPzquLol.png)
@@ -32,6 +32,16 @@ DISORD_BOT_TOKEN: You can get this from the discord developers portal. [Guide fo
 
 UPDATE: Google has killed all the colabs. You will have to use something else for the kobold url. If you have a pretty good gpu you might be able to run it locally with kobold. This guide might help https://docs.alpindale.dev/local-installation-(gpu)/kobold/
 
+# Tip for making the .env file
+## Enable file name extensions
+> Windows 11:
+
+![win11img](https://i.imgur.com/HayEcPol.png)
+> Windows 10:
+
+![win10img](https://i.imgur.com/BsmMUjo.png)
+## Now you can easily rename it to .env
+![envgif](https://github.com/ausboss/PygDiscordBot/blob/main/how-to-env.gif)
 
 # Slash Commands: 
 Right now these commands are mostly helpful for developers. Use /sync to force the slash commands to show up if you don't see them.
