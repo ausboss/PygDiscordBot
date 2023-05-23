@@ -63,7 +63,6 @@ def embedder(msg):
 def kobold_api_call(prompt: str) -> str:
     global endpoint
     url = endpoint + "/api/v1/generate"
-    # url = "https://piece-gzip-basename-confidential.trycloudflare.com/api/v1/generate"
     data = {"prompt": prompt}
     response = requests.post(url, json=data)
     response.raise_for_status()
@@ -93,7 +92,7 @@ class KoboldLLM(LLM):
         # Split the result into lines
         bot_lines = result.split("\n")[0].strip()
         # print(f"Kobold: {result} bot_lines: {bot_lines}")
-        
+    
         return bot_lines
     
     @property
@@ -106,12 +105,10 @@ class KoboldLLM(LLM):
 
 class Chatbot:
     def __init__(self, char_filename, bot):
-        global endpoint
         self.prompt = None
-        self.endpoint = bot.endpoint
-        endpoint = self.endpoint
+        self.endpoint = endpoint
         # Send a PUT request to modify the settings
-        requests.put(f"{self.endpoint}/config", json=model_config)
+        requests.put(f"{self.endpoint}/api/v1/generate", json=model_config)
         # read character data from JSON file
         with open(char_filename, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -125,11 +122,10 @@ class Chatbot:
         self.convo_filename = None
         self.llm = KoboldLLM()
         self.ai_prefix = self.char_name
+        self.human_prefix = ""
         self.memory = ConversationBufferMemory(ai_prefix=self.char_name)
-        self.template = f"{self.char_name}'s Persona: {self.char_persona}\nScenario: {self.world_scenario}\n{self.example_dialogue}\n{{history}}\n{{input}}\n{self.char_name}:"
         self.num_lines_to_keep = 20
-        self.PROMPT = PromptTemplate(input_variables=["history", "input"], template=self.template)
-        self.conversation = ConversationChain(prompt=self.PROMPT, llm=self.llm, verbose=True, memory=self.memory)
+
 
 
 
@@ -146,9 +142,24 @@ class Chatbot:
             self.conversation_history = "<START>\n" + "".join(lines[-num_lines:])
 
     async def save_conversation(self, message, message_content):
+        print(f"message.author.name: {message.author.name}")
         self.human_prefix = message.author.name
         self.memory.human_prefix = message.author.name
+        self.template = f"""{self.char_name}'s Persona: {self.char_persona}
+        Scenario: {self.world_scenario}
+        {self.example_dialogue}
+        {{history}}
+        {message.author.name}: {{input}}
+        {self.char_name}:"""
+        
+        self.PROMPT = PromptTemplate(input_variables=["history", "input"], template=self.template)
+        self.conversation = ConversationChain(prompt=self.PROMPT, llm=self.llm, verbose=True, memory=self.memory)
+
         response = self.conversation.run(input=message.clean_content).strip()
+        with open(self.convo_filename, "a", encoding="utf-8") as f:
+            f.write(f'{message.author.name}: {message_content}\n')
+            f.write(f'{self.char_name}: {response}\n')  # add a separator between
+
         return response
 
 
