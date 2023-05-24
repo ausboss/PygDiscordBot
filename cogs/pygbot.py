@@ -12,16 +12,17 @@ model_config = {
     "use_authors_note": False,
     "use_world_info": False,
     "use_memory": False,
-    "max_context_length": 2400,
-    "max_length": 120,
-    "rep_pen": 1.02,
+    "max_context_length": 2048,
+    "max_length": 300,
+    "rep_pen": 1.15,
     "rep_pen_range": 1024,
     "rep_pen_slope": 0.9,
-    "temperature": 1.0,
+    "temperature": 0.89,
     "tfs": 0.9,
     "top_p": 0.9,
     "typical": 1,
-    "sampler_order": [6, 0, 1, 2, 3, 4, 5]
+    "sampler_order": [6, 0, 1, 2, 3, 4, 5],
+    "stop_sequence": ["\<START\>", "\n",] # Todo - add current users in channel to the stop_sequence
 }
 
 def embedder(msg):
@@ -37,7 +38,9 @@ class Chatbot:
         self.prompt = None
         self.endpoint = bot.endpoint
         # Send a PUT request to modify the settings
-        requests.put(f"{self.endpoint}/config", json=model_config)
+        # This does not work with koboldcpp.
+        # TavernAI instead embeds the config into every api call
+        #requests.put(f"{self.endpoint}/config", json=model_config)
         # read character data from JSON file
         with open(char_filename, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -46,11 +49,12 @@ class Chatbot:
             self.char_greeting = data["char_greeting"]
             self.world_scenario = data["world_scenario"]
             self.example_dialogue = data["example_dialogue"]
+            self.personality = data["personality"]
 
         # initialize conversation history and character information
         self.convo_filename = None
         self.conversation_history = ""
-        self.character_info = f"{self.char_name}'s Persona: {self.char_persona}\nScenario: {self.world_scenario}\n{self.example_dialogue}\n"
+        self.character_info = f"{self.char_name}'s Persona: {self.char_persona}\nDescription of {self.char_name}: {self.personality}\nScenario: {self.world_scenario}\n Example Dialogue: {self.example_dialogue}\n"
 
         self.num_lines_to_keep = 20
 
@@ -66,6 +70,17 @@ class Chatbot:
             num_lines = min(len(lines), self.num_lines_to_keep)
             self.conversation_history = "<START>\n" + "".join(lines[-num_lines:])
 
+    async def reset_convo_file(self):
+        print(self.convo_filename)
+        # set the conversation filename and load conversation history from file
+        if not self.convo_filename:
+            return
+        if not os.path.isfile(self.convo_filename):
+            return
+        with open(self.convo_filename, "w", encoding="utf-8") as f:
+            f.write("<START>\n")
+        self.conversation_history = "<START>\n"
+
     async def save_conversation(self, message, message_content):
         self.conversation_history += f'{message.author.name}: {message_content}\n'
         # define the prompt
@@ -73,11 +88,14 @@ class Chatbot:
             "prompt": self.character_info + '\n'.join(
                 self.conversation_history.split('\n')[-self.num_lines_to_keep:]) + f'{self.char_name}:',
         }
+        self.prompt = {**self.prompt, **model_config}
+        print(self.prompt)
         # send a post request to the API endpoint
         response = requests.post(f"{self.endpoint}/api/v1/generate", json=self.prompt)
         # check if the request was successful
         if response.status_code == 200:
             # Get the results from the response
+            # TODO - Strim user names out of the response. Sometimes the model won't add a new line
             results = response.json()['results']
             response_list = [line for line in results[0]['text'][1:].split("\n")]
             result = [response_list[0]]
@@ -102,12 +120,14 @@ class Chatbot:
             "prompt": self.character_info + '\n'.join(
                 self.conversation_history.split('\n')[-self.num_lines_to_keep:]) + f"{self.char_name}:",
         }
+        self.prompt = {**self.prompt, **model_config}
         print(self.prompt)
         response = requests.post(f"{self.endpoint}/api/v1/generate", json=self.prompt)
         print(response.json()['results'])
         # check if the request was successful
         if response.status_code == 200:
             # Get the results from the response
+            # TODO - See previous TODO
             results = response.json()['results']
             response_list = [line for line in results[0]['text'][1:].split("\n")]
             result = [response_list[0]]
@@ -237,7 +257,8 @@ class ChatbotCog(commands.Cog, name="chatbot"):
     @app_commands.command(name="koboldget", description="Get the value of a parameter from the API")
     async def koboldget(self, interaction: discord.Interaction, parameter: str):
         try:
-            value = await self.api_get(parameter)
+            value = model_config.get(parameter)
+            #value = await self.api_get(parameter)
             print(f"Parameter '{parameter}' value: {value}")
             await interaction.response.send_message(embed=embedder(f"Parameter {parameter} value: {value}"),
                                                     delete_after=3)
@@ -247,11 +268,18 @@ class ChatbotCog(commands.Cog, name="chatbot"):
     @app_commands.command(name="koboldput", description="Set the value of a parameter in the API")
     async def koboldput(self, interaction: discord.Interaction, parameter: str, value: str):
         try:
-            result = await self.api_put(parameter, value)
+            #TODO - this is broken
+            model_config.update((str(parameter), value))
+            #result = await self.api_put(parameter, value)
             await interaction.response.send_message(embed=embedder(f"Parameter '{parameter}' updated to: {value}"),
                                                     delete_after=3)
         except Exception as e:
             await interaction.response.send_message(embed=embedder(f"Error: {e}"), delete_after=12)
+
+    @app_commands.command(name="reset_conversation", description="Reset conversation")
+    async def reset_conversation(self, interaction: discord.Interaction):
+        await self.chatbot.reset_convo_file()
+        await interaction.response.send_message("Current conversation has been deleted. Context has been wiped up until this point.")
 
 
 
