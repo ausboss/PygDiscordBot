@@ -56,15 +56,14 @@ class Chatbot:
         self.conversation_history = ""
         self.character_info = f"{self.char_name}'s Persona: {self.char_persona}\nDescription of {self.char_name}: {self.personality}\nScenario: {self.world_scenario}\n"
 
-        self.num_lines_to_keep = 20
+        self.num_lines_to_keep = 30
 
     async def set_convo_filename(self, convo_filename):
         # set the conversation filename and load conversation history from file
         self.convo_filename = convo_filename
         if not os.path.isfile(convo_filename):
-            # create a new file if it does not exist
-            with open(convo_filename, "w", encoding="utf-8") as f:
-                f.write("Example Dialogue: " + self.example_dialogue + "\n<START>\n")
+            await self.reset_convo_file()
+            return
         with open(convo_filename, "r", encoding="utf-8") as f:
             lines = f.readlines()
             num_lines = min(len(lines), self.num_lines_to_keep)
@@ -80,21 +79,13 @@ class Chatbot:
         self.conversation_history = "Example Dialogue: " + self.example_dialogue + "\n<START>\n"
         return True
 
-    async def save_conversation(self, message, message_content):
-        self.conversation_history += f'{message.author.name}: {message_content}\n'
-        # define the prompt
-        self.prompt = {
-            "prompt": self.character_info + '\n'.join(
-                self.conversation_history.split('\n')[-self.num_lines_to_keep:]) + f'{self.char_name}:',
-        }
-        self.prompt = {**self.prompt, **model_config}
-        print(self.prompt)
-        # send a post request to the API endpoint
+
+    async def send_prompt_and_parse_result(self, message):
         response = requests.post(f"{self.endpoint}/api/v1/generate", json=self.prompt)
+        response_text = ""
         # check if the request was successful
         if response.status_code == 200:
             # Get the results from the response
-            # TODO - Strim user names out of the response. Sometimes the model won't add a new line
             results = response.json()['results']
             response_list = [line for line in results[0]['text'][1:].split("\n")]
             result = [response_list[0]]
@@ -105,6 +96,27 @@ class Chatbot:
                     break
             new_list = [item.replace(self.char_name + ": ", '\n') for item in result]
             response_text = ''.join(new_list)
+
+            # Remove any instances of where the bot is trying to imitate the message author.
+            # This has some potential issues if the bot will try to make a list, but I don't care.
+            # TODO - Expand this for all users in the channel
+            response_text = response_text.split(message.author.name + ":")[0]
+
+        return (response, response_text)
+
+    async def save_conversation(self, message, message_content):
+        self.conversation_history += f'{message.author.name}: {message_content}\n'
+        # define the prompt
+        self.prompt = {
+            "prompt": self.character_info + '\n'.join(
+                self.conversation_history.split('\n')[-self.num_lines_to_keep:]) + f'{self.char_name}:',
+        }
+        self.prompt = {**self.prompt, **model_config}
+        print(self.prompt)
+        # send a post request to the API endpoint
+        (response, response_text) = await self.send_prompt_and_parse_result(message)
+        # check if the request was successful
+        if response.status_code == 200:
             # add bot response to conversation history
             self.conversation_history = self.conversation_history + f'{self.char_name}: {response_text}\n'
             with open(self.convo_filename, "a", encoding="utf-8") as f:
@@ -121,22 +133,9 @@ class Chatbot:
         }
         self.prompt = {**self.prompt, **model_config}
         print(self.prompt)
-        response = requests.post(f"{self.endpoint}/api/v1/generate", json=self.prompt)
-        print(response.json()['results'])
+        (response, response_text) = await self.send_prompt_and_parse_result(message)
         # check if the request was successful
         if response.status_code == 200:
-            # Get the results from the response
-            # TODO - See previous TODO
-            results = response.json()['results']
-            response_list = [line for line in results[0]['text'][1:].split("\n")]
-            result = [response_list[0]]
-            for item in response_list[1:]:
-                if self.char_name in item:
-                    result.append(item)
-                else:
-                    break
-            new_list = [item.replace(self.char_name + ": ", '\n') for item in result]
-            response_text = ''.join(new_list)
             self.conversation_history = self.conversation_history + f'{self.char_name}: {response_text}\n'
             with open(self.convo_filename, "a", encoding="utf-8") as f:
                 f.write(f'{self.char_name}: {response_text}\n')  # add a separator between
@@ -267,9 +266,7 @@ class ChatbotCog(commands.Cog, name="chatbot"):
     @app_commands.command(name="koboldput", description="Set the value of a parameter in the API")
     async def koboldput(self, interaction: discord.Interaction, parameter: str, value: str):
         try:
-            #TODO - this is broken
-            model_config.update((str(parameter), value))
-            #result = await self.api_put(parameter, value)
+            model_config[parameter] = float(value)
             await interaction.response.send_message(embed=embedder(f"Parameter '{parameter}' updated to: {value}"),
                                                     delete_after=3)
         except Exception as e:
