@@ -22,7 +22,7 @@ model_config = {
     "top_p": 0.9,
     "typical": 1,
     "sampler_order": [6, 0, 1, 2, 3, 4, 5],
-    "stop_sequence": ["\<START\>", "\n",] # Todo - add current users in channel to the stop_sequence
+    "stop_sequence": ["\<START\>", "\n", "Xilixia:", "Kwigg:"] # Todo - add current users in channel to the stop_sequence
 }
 
 def embedder(msg):
@@ -54,7 +54,7 @@ class Chatbot:
         # initialize conversation history and character information
         self.convo_filename = None
         self.conversation_history = ""
-        self.character_info = f"{self.char_name}'s Persona: {self.char_persona}\nDescription of {self.char_name}: {self.personality}\nScenario: {self.world_scenario}\n Example Dialogue: {self.example_dialogue}\n"
+        self.character_info = f"{self.char_name}'s Persona: {self.char_persona}\nDescription of {self.char_name}: {self.personality}\nScenario: {self.world_scenario}\n"
 
         self.num_lines_to_keep = 20
 
@@ -64,7 +64,7 @@ class Chatbot:
         if not os.path.isfile(convo_filename):
             # create a new file if it does not exist
             with open(convo_filename, "w", encoding="utf-8") as f:
-                f.write("<START>\n")
+                f.write("Example Dialogue: " + self.example_dialogue + "\n<START>\n")
         with open(convo_filename, "r", encoding="utf-8") as f:
             lines = f.readlines()
             num_lines = min(len(lines), self.num_lines_to_keep)
@@ -74,12 +74,11 @@ class Chatbot:
         print(self.convo_filename)
         # set the conversation filename and load conversation history from file
         if not self.convo_filename:
-            return
-        if not os.path.isfile(self.convo_filename):
-            return
+            return False
         with open(self.convo_filename, "w", encoding="utf-8") as f:
-            f.write("<START>\n")
-        self.conversation_history = "<START>\n"
+            f.write("Example Dialogue: " + self.example_dialogue + "\n<START>\n")
+        self.conversation_history = "Example Dialogue: " + self.example_dialogue + "\n<START>\n"
+        return True
 
     async def save_conversation(self, message, message_content):
         self.conversation_history += f'{message.author.name}: {message_content}\n'
@@ -278,8 +277,11 @@ class ChatbotCog(commands.Cog, name="chatbot"):
 
     @app_commands.command(name="reset_conversation", description="Reset conversation")
     async def reset_conversation(self, interaction: discord.Interaction):
-        await self.chatbot.reset_convo_file()
-        await interaction.response.send_message("Current conversation has been deleted. Context has been wiped up until this point.")
+        deleleted_successfully = await self.chatbot.reset_convo_file()
+        if deleleted_successfully is not True:
+            await interaction.response.send_message("Conversation has not been reset. Please send an initial message first to instantiate the bot instance.")
+        else:
+            await interaction.response.send_message("Current conversation has been deleted. Context has been wiped up until this point.")
 
 
 
