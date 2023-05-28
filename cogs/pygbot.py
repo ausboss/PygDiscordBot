@@ -22,8 +22,10 @@ model_config = {
     "top_p": 0.9,
     "typical": 1,
     "sampler_order": [6, 0, 1, 2, 3, 4, 5],
-    "stop_sequence": ["\<START\>", "\n", "Xilixia:", "Kwigg:"] # Todo - add current users in channel to the stop_sequence
+    "stop_sequence": ["\<START\>", "\n", "User:"]
 }
+
+seen_users = []
 
 def embedder(msg):
     embed = discord.Embed(
@@ -81,7 +83,20 @@ class Chatbot:
 
 
     async def send_prompt_and_parse_result(self, message):
-        response = requests.post(f"{self.endpoint}/api/v1/generate", json=self.prompt)
+        print(message)
+        if message is not None:
+            if message.author.name not in seen_users:
+                seen_users.append(message.author.name)
+                if message.author.name + ":" not in model_config["stop_sequence"]:
+                    model_config["stop_sequence"].append(message.author.name + ":")
+                print(seen_users)
+        message_prompt = {
+            "prompt": self.character_info + '\n'.join(
+                self.conversation_history.split('\n')[-self.num_lines_to_keep:]) + f"{self.char_name}:",
+        }
+        combined_prompt = {**message_prompt, **model_config}
+        print(combined_prompt)
+        response = requests.post(f"{self.endpoint}/api/v1/generate", json=combined_prompt)
         response_text = ""
         # check if the request was successful
         if response.status_code == 200:
@@ -97,22 +112,13 @@ class Chatbot:
             new_list = [item.replace(self.char_name + ": ", '\n') for item in result]
             response_text = ''.join(new_list)
 
-            # Remove any instances of where the bot is trying to imitate the message author.
-            # This has some potential issues if the bot will try to make a list, but I don't care.
-            # TODO - Expand this for all users in the channel
-            response_text = response_text.split(message.author.name + ":")[0]
+            for user in seen_users:
+                response_text = response_text.split(user + ":")[0]
 
         return (response, response_text)
 
     async def save_conversation(self, message, message_content):
         self.conversation_history += f'{message.author.name}: {message_content}\n'
-        # define the prompt
-        self.prompt = {
-            "prompt": self.character_info + '\n'.join(
-                self.conversation_history.split('\n')[-self.num_lines_to_keep:]) + f'{self.char_name}:',
-        }
-        self.prompt = {**self.prompt, **model_config}
-        print(self.prompt)
         # send a post request to the API endpoint
         (response, response_text) = await self.send_prompt_and_parse_result(message)
         # check if the request was successful
@@ -127,13 +133,7 @@ class Chatbot:
 
     async def follow_up(self):
         self.conversation_history = self.conversation_history
-        self.prompt = {
-            "prompt": self.character_info + '\n'.join(
-                self.conversation_history.split('\n')[-self.num_lines_to_keep:]) + f"{self.char_name}:",
-        }
-        self.prompt = {**self.prompt, **model_config}
-        print(self.prompt)
-        (response, response_text) = await self.send_prompt_and_parse_result(message)
+        (response, response_text) = await self.send_prompt_and_parse_result(None)
         # check if the request was successful
         if response.status_code == 200:
             self.conversation_history = self.conversation_history + f'{self.char_name}: {response_text}\n'
