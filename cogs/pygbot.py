@@ -53,14 +53,20 @@ class Chatbot:
             self.example_dialogue = data["example_dialogue"]
             self.personality = data["personality"]
 
+        self.char_persona = self.char_persona.replace("{{char}}", self.char_name)
+        self.char_greeting = self.char_greeting.replace("{{char}}", self.char_name)
+        self.world_scenario = self.world_scenario.replace("{{char}}", self.char_name)
+        self.example_dialogue = self.example_dialogue.replace("{{char}}", self.char_name)
+        self.personality = self.personality.replace("{{char}}", self.char_name)
+
         # initialize conversation history and character information
         self.convo_filename = None
         self.conversation_history = ""
         self.character_info = f"{self.char_name}'s Persona: {self.char_persona}\n"
-		if self.personality is not None:
-			self.character_info += f"Description of {self.char_name}: {self.personality}\n"
-		if self.world_scenario is not None:
-			self.character_info += f"Scenario: {self.world_scenario}\n"
+        if self.personality is not None:
+            self.character_info += f"Description of {self.char_name}: {self.personality}\n"
+        if self.world_scenario is not None:
+            self.character_info += f"Scenario: {self.world_scenario}\n"
 
         self.num_lines_to_keep = 30
 
@@ -80,9 +86,9 @@ class Chatbot:
         # set the conversation filename and load conversation history from file
         if not self.convo_filename:
             return False
-		start_dialogue = ""
-		if self.example_dialogue is not None:
-			start_dialogue = "Example Dialogue: " + self.example_dialogue + "\n"
+        start_dialogue = ""
+        if self.example_dialogue is not None:
+            start_dialogue = "Example Dialogue: " + self.example_dialogue + "\n"
         with open(self.convo_filename, "w", encoding="utf-8") as f:
             f.write(start_dialogue + "<START>\n")
         self.conversation_history = start_dialogue + "<START>\n"
