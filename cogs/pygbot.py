@@ -49,9 +49,11 @@ class Chatbot:
             self.char_name = data["char_name"]
             self.char_persona = data["char_persona"]
             self.char_greeting = data["char_greeting"]
-            self.world_scenario = data["world_scenario"]
+            if "world_scenario" in data:
+                self.world_scenario = data["world_scenario"]
             self.example_dialogue = data["example_dialogue"]
-            self.personality = data["personality"]
+            if "personality" in data:
+                self.personality = data["personality"]
 
         self.char_persona = self.char_persona.replace("{{char}}", self.char_name)
         self.char_greeting = self.char_greeting.replace("{{char}}", self.char_name)
