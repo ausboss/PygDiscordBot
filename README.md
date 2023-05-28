@@ -1,11 +1,18 @@
-# Discord Tavern Style Pygmalion Chatbot
-This is a discord bot that uses Pygmalion-6B and a KoboldAI url. The bot now supports json files and tavern cards and will change its name and image automatically.
+# Make sure to show some love to ausboss, all I did was tweak their work!
 
+# Discord Tavern Style Chatbot for KoboldCpp with Pygmalion-style chat models
+This is a discord bot that connects to a KoboldAI endpoint and uses the Pygmalion style chat prompt system to communicate back and forth. It supports TavernAI cards and jsons.
 
+I have made the following changes from the original repo by ausboss:
 
+> Changed the variables to be submitted in the prompt post request. It appears that this is the preferred way for KoboldCpp to work
+> Tweaked the variables to be LLaMA model compatible.
+> Improved support for models not strictly trained on the Pyg dataset by detecting and trimming cases where the model starts hallucinating what users say to it without making new lines.
+> Some code tweaks to reduce repetition
+> A few new slash commands for my convenience when testing
 
-# Blip Image detection added
-![image](https://i.imgur.com/VPzquLol.png)
+I've done most of my testing and development with Manticore-13B. I have tried Pygmalion-13B with good results too.
+
 
 
 # Instructions: 
@@ -19,34 +26,15 @@ This is a discord bot that uses Pygmalion-6B and a KoboldAI url. The bot now sup
 
 >5. Choose the character
 
-![Choose](https://i.imgur.com/qY6ZpB8.png)
+Go to the original repo for more instructions.
 
-Discord only allows bots to be renamed twice per hour.
-
-
-# More Info: 
-
-DISORD_BOT_TOKEN: You can get this from the discord developers portal. [Guide for setting that up](https://rentry.org/discordbotguide)
-
-~~ENDPOINT: Set the endpoint variable with the KoboldAI url you get from this [google collab](https://colab.research.google.com/drive/1ZvYq4GmjfsyIkcTQcrBhSFXs8vQLLMAS). Or if you have a beefy gpu you can run kobold locally. https://github.com/KoboldAI/KoboldAI-Client~~
-
-UPDATE: Google has killed all the colabs. You will have to use something else for the kobold url. If you have a pretty good gpu you might be able to run it locally with kobold. This guide might help https://docs.alpindale.dev/local-installation-(gpu)/kobold/
-
-# Tip for making the .env file
-## Enable file name extensions
-> Windows 11:
-
-![win11img](https://i.imgur.com/HayEcPol.png)
-> Windows 10:
-
-![win10img](https://i.imgur.com/BsmMUjo.png)
-## Now you can easily rename it to .env
-![envgif](https://github.com/ausboss/PygDiscordBot/blob/main/how-to-env.gif)
 
 # Slash Commands: 
-Right now these commands are mostly helpful for developers. Use /sync to force the slash commands to show up if you don't see them.
+
 | Command Name   | Slash Command    | More Info                                                                               |
 | ---            | ---              | ---                                                                                     |
 | Sync Commands  | `/sync`          | Needed to make the commands appear right away.                                         |
 | Reload Cog     | `/reload <name>` | Lets you reload a specific cog instead of needing to restart everything.               |
-|Regenerate Last Message| '/regenerate'| Removes the last message and will generate another one |
+|Regenerate Last Message| `/regenerate`| Removes the last message and will generate another one                |
+| Follow up      | `/followup`      | Tell the bot to generate another message on top of the last one it sent  |
+| Reset Conversation    | `/reset_conversation`      | Erases the current conversation and returns the context window to a clean slate. |
