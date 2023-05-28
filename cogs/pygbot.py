@@ -17,12 +17,12 @@ model_config = {
     "rep_pen": 1.15,
     "rep_pen_range": 1024,
     "rep_pen_slope": 0.9,
-    "temperature": 0.89,
+    "temperature": 1.0,
     "tfs": 0.9,
     "top_p": 0.9,
     "typical": 1,
     "sampler_order": [6, 0, 1, 2, 3, 4, 5],
-    "stop_sequence": ["\<START\>", "\n", "User:"]
+    "stop_sequence": ["\<START\>", "<START>", "<STOP>", "<END>","\n", "User:"]
 }
 
 seen_users = []
@@ -56,7 +56,11 @@ class Chatbot:
         # initialize conversation history and character information
         self.convo_filename = None
         self.conversation_history = ""
-        self.character_info = f"{self.char_name}'s Persona: {self.char_persona}\nDescription of {self.char_name}: {self.personality}\nScenario: {self.world_scenario}\n"
+        self.character_info = f"{self.char_name}'s Persona: {self.char_persona}\n"
+		if self.personality is not None:
+			self.character_info += f"Description of {self.char_name}: {self.personality}\n"
+		if self.world_scenario is not None:
+			self.character_info += f"Scenario: {self.world_scenario}\n"
 
         self.num_lines_to_keep = 30
 
@@ -76,9 +80,12 @@ class Chatbot:
         # set the conversation filename and load conversation history from file
         if not self.convo_filename:
             return False
+		start_dialogue = ""
+		if self.example_dialogue is not None:
+			start_dialogue = "Example Dialogue: " + self.example_dialogue + "\n"
         with open(self.convo_filename, "w", encoding="utf-8") as f:
-            f.write("Example Dialogue: " + self.example_dialogue + "\n<START>\n")
-        self.conversation_history = "Example Dialogue: " + self.example_dialogue + "\n<START>\n"
+            f.write(start_dialogue + "<START>\n")
+        self.conversation_history = start_dialogue + "<START>\n"
         return True
 
 
