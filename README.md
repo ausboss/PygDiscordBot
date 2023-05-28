@@ -6,9 +6,13 @@ This is a discord bot that connects to a KoboldAI endpoint and uses the Pygmalio
 I have made the following changes from the original repo by ausboss:
 
 > Changed the variables to be submitted in the prompt post request. It appears that this is the preferred way for KoboldCpp to work
+
 > Tweaked the variables to be LLaMA model compatible.
+
 > Improved support for models not strictly trained on the Pyg dataset by detecting and trimming cases where the model starts hallucinating what users say to it without making new lines.
+
 > Some code tweaks to reduce repetition
+
 > A few new slash commands for my convenience when testing
 
 I've done most of my testing and development with Manticore-13B. I have tried Pygmalion-13B with good results too.
