@@ -11,6 +11,8 @@ class ListenerCog(commands.Cog, name="listener"):
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self.loop.run_forever, daemon=True)
         self.thread.start()
+        self.lock = threading.Lock()
+        self.msg_counter = 0
 
     async def has_image_attachment(self, message_content):
         url_pattern = re.compile(
@@ -70,6 +72,10 @@ class ListenerCog(commands.Cog, name="listener"):
         ):
             response = None
 
+            with self.lock:
+                self.msg_counter += 1
+
+            msg_count_at_start = self.msg_counter
             async with message.channel.typing():
                 future = asyncio.run_coroutine_threadsafe(
                     self.generate_response(message), self.loop
@@ -77,12 +83,15 @@ class ListenerCog(commands.Cog, name="listener"):
                 while not future.done():
                     await asyncio.sleep(1)
                 response = future.result()
+            msg_count_at_end = self.msg_counter
 
             if response:
-                if random.random() < 0.8:
-                    await message.channel.send(response)
-                else:
+                if msg_count_at_end != msg_count_at_start:
+                    with self.lock:
+                        self.msg_counter += 1
                     await message.reply(response)
+                else:
+                    await message.channel.send(response)
 
 
 async def setup(bot):
