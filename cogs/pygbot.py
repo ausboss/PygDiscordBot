@@ -8,21 +8,24 @@ import os
 
 # configuration settings for the api
 model_config = {
-    "use_story": False,
-    "use_authors_note": False,
-    "use_world_info": False,
-    "use_memory": False,
+    "use_story": True,
+    "use_authors_note": True,
+    "use_world_info": True,
+    "use_memory": True,
     "max_context_length": 2048,
     "max_length": 300,
-    "rep_pen": 1.15,
+    "rep_pen": 1.19,
     "rep_pen_range": 1024,
     "rep_pen_slope": 0.9,
-    "temperature": 1.0,
-    "tfs": 0.9,
+    "temperature": 0.79,
+    "tfs": 0.95,
+    "top_a": 0,
+    "top_k": 0,
     "top_p": 0.9,
     "typical": 1,
-    "sampler_order": [6, 0, 1, 2, 3, 4, 5],
-    "stop_sequence": ["\<START\>", "<START>", "<STOP>", "<END>","\n", "User:"]
+    "n": 1,
+    "sampler_order": [0, 1, 2, 3, 4, 5, 6],
+    "stop_sequence": ["User:"]
 }
 
 seen_users = []
@@ -100,10 +103,10 @@ class Chatbot:
     async def send_prompt_and_parse_result(self, message):
         print(message)
         if message is not None:
-            if message.author.name not in seen_users:
-                seen_users.append(message.author.name)
-                if message.author.name + ":" not in model_config["stop_sequence"]:
-                    model_config["stop_sequence"].append(message.author.name + ":")
+            if message.author.nick not in seen_users:
+                seen_users.append(message.author.nick)
+                if message.author.nick + ":" not in model_config["stop_sequence"]:
+                    model_config["stop_sequence"].append(message.author.nick + ":")
                 print(seen_users)
         message_prompt = {
             "prompt": self.character_info + '\n'.join(
@@ -133,7 +136,7 @@ class Chatbot:
         return (response, response_text)
 
     async def save_conversation(self, message, message_content):
-        self.conversation_history += f'{message.author.name}: {message_content}\n'
+        self.conversation_history += f'{message.author.nick}: {message_content}\n'
         # send a post request to the API endpoint
         (response, response_text) = await self.send_prompt_and_parse_result(message)
         # check if the request was successful
@@ -141,7 +144,7 @@ class Chatbot:
             # add bot response to conversation history
             self.conversation_history = self.conversation_history + f'{self.char_name}: {response_text}\n'
             with open(self.convo_filename, "a", encoding="utf-8") as f:
-                f.write(f'{message.author.name}: {message_content}\n')
+                f.write(f'{message.author.nick}: {message_content}\n')
                 f.write(f'{self.char_name}: {response_text}\n')  # add a separator between
 
             return response_text

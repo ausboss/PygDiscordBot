@@ -33,7 +33,7 @@ call venv\Scripts\activate
 
 rem Install the required packages
 pip install -r requirements.txt
-pip install torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
+pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu116
 pip install --upgrade transformers
 rem clear console
 cls
