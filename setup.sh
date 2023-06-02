@@ -19,14 +19,9 @@ fi
 # Specific versions were removed because they were causing issues for me and I'm too lazy to figure out what
 echo "Installing required packages..."
 pip install -r requirements.txt
-pip install torchvision
 pip install --upgrade transformers
+
 # run the python code
 echo "Starting the bot..."
-# Load environment variables from .env file
-while read -r line || [[ -n "$line" ]]; do
-  export "$line"
-done < .env
-
 # Run the Python script with the environment variables as arguments
-python discordbot.py $DISCORD_BOT_TOKEN $ENDPOINT $CHANNEL_ID
+python discordbot.py

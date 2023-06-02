@@ -26,21 +26,17 @@ if %errorlevel% neq 0 (
 rem Create the virtual environment
 virtualenv venv
 
-
-
 rem Activate the virtual environment
 call venv\Scripts\activate
 
 rem Install the required packages
 pip install -r requirements.txt
-pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu116
 pip install --upgrade transformers
 rem clear console
 cls
 
 rem echo Set up Complete 
 rem echo Configure your .env file then launch run.bat
-rem echo or run using "python discordbot.py <DISCORD_BOT_TOKEN> <ENDPOINT> <CHANNEL_ID>"
 
 REM Check if .env file exists
 if not exist .env (
@@ -49,17 +45,11 @@ if not exist .env (
 	echo ===========================================
 	echo.
 	echo Configure your .env file then launch run.bat
-	echo.
-	echo or run using "python discordbot.py <DISCORD_BOT_TOKEN> <ENDPOINT> <CHANNEL_ID>"
     pause
     exit /b
 )
 
-REM Load environment variables from .env file
-for /f "delims=" %%a in ('type .env') do set "%%a"
-
 REM Run the Python script with the environment variables as arguments
-python discordbot.py %DISCORD_BOT_TOKEN% %ENDPOINT% %CHANNEL_ID%
-
+python discordbot.py
 
 pause
