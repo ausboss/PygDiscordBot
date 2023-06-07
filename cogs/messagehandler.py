@@ -35,9 +35,9 @@ class ListenerCog(commands.Cog, name="listener"):
             return
         name_check_string = message.clean_content.lower()
         # if message is a mention of the bot or a reply then continue
-        if self.bot.user.name in [mention.name for mention in message.mentions] or name_check_string.startswith(self.bot.user.name.lower()):
-            
+        if self.bot.user.name in [mention.name for mention in message.mentions] or self.bot.user.name.lower() in name_check_string:
 
+            
             """
             Main On Message Handler
 
@@ -59,12 +59,10 @@ class ListenerCog(commands.Cog, name="listener"):
                     response = await self.bot.get_cog("chatbot").chat_command(message, message.content)
                     if response:
                         async with message.channel.typing():
-                            await asyncio.sleep(1)  # Simulate some work being done
-                            if random.random() < 0.8:
-                                await message.channel.send(response)
-                            else:
-                                await message.reply(response)
-                                return
+                            await asyncio.sleep(1 + random.randint(0,2))  # Simulate some work being done
+                            await message.reply(response)
+                            return
+
 
 
 async def setup(bot):
