@@ -5,3 +5,5 @@ discord.py
 transformers
 langchain
 chromadb
+openai
+salesforce-lavis

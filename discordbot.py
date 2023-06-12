@@ -32,6 +32,7 @@ bot.endpoint_connected = False
 bot.channel_id = CHANNEL_ID
 bot.guild_ids = [int(x) for x in sys.argv[3].split(",")]
 bot.debug = True
+bot.message_queue = asyncio.Queue()
 bot.char_name = ""
 characters_folder = 'Characters'
 cards_folder = 'Cards'
