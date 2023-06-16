@@ -6,4 +6,3 @@ transformers
 langchain
 chromadb
 openai
-salesforce-lavis

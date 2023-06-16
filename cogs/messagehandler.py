@@ -6,6 +6,7 @@ import random
 load_dotenv()
 import re
 
+print('listener loaded')
 
 class ListenerCog(commands.Cog, name="listener"):
     def __init__(self, bot):
@@ -27,42 +28,47 @@ class ListenerCog(commands.Cog, name="listener"):
         else:
             return False
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
+@commands.Cog.listener()
+async def on_message(self, message):
+    print('test')
 
-        # if message starts with ".", "/"" or is by the bot - do nothing
-        if message.author == self.bot.user or message.content.startswith((".", "/")):
-            return
-        name_check_string = message.clean_content.lower()
-        # if message is a mention of the bot or a reply then continue
-        if self.bot.user.name in [mention.name for mention in message.mentions] or self.bot.user.name.lower() in name_check_string:
+    # if message starts with ".", "/"" or is by the bot - do nothing
+    if message.author == self.bot.user or message.content.startswith((".", "/")):
+        return
 
-            
-            """
-            Main On Message Handler
+    name_check_string = message.clean_content.lower()
+    bot_name_lower = self.bot.user.name.lower()
+    # create a list of possible greetings + self.bot.user to use for name checking
+    # if message is a mention of the bot or a reply then continue
+    if message.channel.id in [int(channel_id) for channel_id in self.bot.guild_ids] or message.guild is None:
+        """
+        Main On Message Handler
 
-            This part needs to be as basic as possible
+        This part needs to be as basic as possible
 
-            """
-            # if message is channel id argument or DM or
-            if message.channel.id in [int(channel_id) for channel_id in self.bot.guild_ids] or message.guild is None:
-                # image handling
-                if await self.has_image_attachment(message):
-                    image_response = await self.bot.get_cog("image_caption").image_comment(message)
+        """
+        # if message 
+        if self.bot.user.name in [mention.name for mention in message.mentions] or message.clean_content.startswith(name_check_string):
+            if await self.has_image_attachment(message):
+                image_response = await self.bot.get_cog("image_caption").image_comment(message)
+                async with message.channel.typing():
                     response = await self.bot.get_cog("chatbot").chat_command(message, image_response)
                     if response:
-                        async with message.channel.typing():
-                            await asyncio.sleep(1)  # Simulate some work being done
-                            await message.reply(response)
-                else:
-                    # No image. Normal text response
-                    response = await self.bot.get_cog("chatbot").chat_command(message, message.clean_content)
+                        await message.reply(response)
+            else:
+                # No image. Normal text response
+                response = await self.bot.get_cog("chatbot").chat_command(message, message.clean_content)
+                async with message.channel.typing():
                     if response:
-                        async with message.channel.typing():
-                            await asyncio.sleep(1 + random.randint(0,2))  # Simulate some work being done
-                            await message.reply(response)
-                            return
-
+                        await message.reply(response)
+                        return
+        else:
+            # if message is not a mention of the bot or a reply then use the no response handler
+            if await self.has_image_attachment(message):
+                image_response = await self.bot.get_cog("image_caption").image_comment(message)
+                response = await self.bot.get_cog("chatbot").chat_command_nr(message, message.clean_content)
+            else:
+                await self.bot.get_cog("chatbot").chat_command_nr(message, message.clean_content)
 
 
 
