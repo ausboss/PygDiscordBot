@@ -71,7 +71,7 @@ class KoboldApiLLM(LLM):
                 "rep_pen": 1.02,
                 "rep_pen_range": 1024,
                 "rep_pen_slope": 0.9,
-                "temperature": 0.6,
+                "temperature": 0.5,
                 "tfs": 0.9,
                 "top_p": 0.9,
                 "typical": 1,
@@ -90,10 +90,12 @@ class KoboldApiLLM(LLM):
         }
 
 
-
+    
 class Chatbot:
     def __init__(self, char_filename, bot):
         self.stop_token = "</s>"
+        self.bot = bot
+        self.histories = {}  # Initialize the history dictionary
 
         # read character data from JSON file
         with open(char_filename, "r", encoding="utf-8") as f:
@@ -105,9 +107,16 @@ class Chatbot:
             self.example_dialogue = data["example_dialogue"]
         self.history = "[Beginning of Conversation]"
         self.llm = KoboldApiLLM()
-        self.memory = CustomBufferWindowMemory(k=8, memory_key="chat_history")
 
-        # self.memory = ConversationBufferMemory(memory_key="chat_history", ai_prefix=self.char_name)
+
+
+    async def get_memory_for_channel(self, channel_id):
+        """Get the memory for the channel with the given ID. If no memory exists yet, create one."""
+        if channel_id not in self.histories:
+            self.histories[channel_id] = CustomBufferWindowMemory(k=8, memory_key="chat_history")
+        return self.histories[channel_id]
+
+
     async def remove_char_name_from_string(self, string):
         prefix_to_remove = self.char_name + "@"
 
@@ -119,9 +128,11 @@ class Chatbot:
 
 
     async def generate_response(self, message, message_content) -> None:
+        channel_id = str(message.channel.id)
 
         
         name = message.author.display_name
+        memory = await self.get_memory_for_channel(channel_id)
         # save the conversation to the chatlog 
         self.template = f"""
 ### Instructions:
@@ -131,7 +142,7 @@ The following is group chat. Use the provided input for context. Reply as {self.
 {self.char_persona}
 Current conversation:
 {self.char_greeting}
-{self.memory.load_memory_variables('chat_history')['chat_history']}
+{memory.load_memory_variables('chat_history')['chat_history']}
 {{input}}
 
 ### Response:
@@ -154,16 +165,19 @@ Tensor:"""
 
         # add the AI's response to the memory
         # self.memory.add_ai_message(f"{self.char_name}: {response}")
-        self.memory.save_context({"input": f"{formatted_message}{self.stop_token}"}, {"output": f"{self.char_name}: {response}{self.stop_token}"})
+        memory.save_context({"input": f"{formatted_message}{self.stop_token}"}, {"output": f"{self.char_name}: {response}{self.stop_token}"})
         # dicts = messages_to_dict(self.memory.messages)
         # self.history = '\n'.join(message['data']['content'] for message in dicts)
 
         return response
 
     async def add_history(self, message, message_content) -> None:
+        channel_id = str(message.channel.id)
+
+        memory = await self.get_memory_for_channel(channel_id)
         
         name = message.author.display_name
-        self.memory.add_input_only(f"{name}: {message_content}{self.stop_token}")
+        memory.add_input_only(f"{name}: {message_content}{self.stop_token}")
         # dicts = messages_to_dict(self.memory.messages)
         # self.history = '\n'.join(message['data']['content'] for message in dicts)
         print(f"added to history: {name}: {message_content}{self.stop_token}")
@@ -196,44 +210,25 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         response = await self.chatbot.add_history(message, message_content)
         return None
 
-
-    # Embedders
-    
-    async def instruct_embedder(self, interaction, prompt, message):
-        embed = discord.Embed(
-                title="Instruct 👨‍🏫:",
-                description=f"Author: {interaction.user.name}\nPrompt: {prompt}\nResponse:\n{message}",
-                color=0x9C84EF
-            )
-        return embed
-
-    async def wait_embedder(self, name):
-        embedder = discord.Embed(
-                title="Instruct 👨‍🏫:",
-                description=f"Generating response for \n{name}\n\nPlease wait..",
-                color=0x9C84EF
-            )
-        return embedder
-
-    
-
-
-    # create a slash command that will do a regular instruct api call with a specific prompt. This will not get added to history.
     @app_commands.command(name="instruct", description="Instruct the bot to say something")
     async def instruct(self, interaction: discord.Interaction, prompt: str):
-        await interaction.response.send_message(embed=await self.wait_embedder(interaction.user.name))
+        await interaction.response.send_message(embed=discord.Embed(
+                title=f"{interaction.user.display_name} used Instruct 👨‍🏫",
+                description=f"Instructions: {prompt}\nGenerating response\nPlease wait..",
+                color=0x9C84EF
+            ))
         
-        # await interaction.response.send_message("", delete_after=0.1)
-        # await interaction.delete_original_response()
+        # if user
         user_message = prompt
-        self.prompt = {"prompt": f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
-        ### Instruction:\{prompt}\n
-    
-        ### Response:
-        """
+        self.prompt = {"prompt": f"""
+Below is an instruction that describes a task. Write a response that appropriately completes the request.
+### Instruction:\{prompt}\n
+
+### Response:
+"""
         }
         # send a post request to the API endpoint
-        response = requests.post(f"{self.endpoint}/api/v1/generate", json=self.prompt)
+        response = requests.post(f"{self.bot.endpoint}/api/v1/generate", json=self.prompt)
         # check if the request was successful
         if response.status_code == 200:
             # Get the results from the response
@@ -241,7 +236,8 @@ class ChatbotCog(commands.Cog, name="chatbot"):
             response = results[0]['text']
             print(response)
             # await interaction.channel.send(response)
-            await interaction.channel.send(embed=await self.instruct_embedder(interaction, user_message, response))
+            await interaction.channel.send(response)
+    
 
 
 async def setup(bot):

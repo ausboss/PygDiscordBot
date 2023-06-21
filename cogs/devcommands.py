@@ -2,6 +2,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+
+
 def embedder(msg):
     embed = discord.Embed(
             description=f"{msg}",
@@ -14,6 +16,7 @@ class DevCommands(commands.Cog, name="dev_commands"):
         self.bot = bot
         self.guild_ids = bot.guild_ids
         self.channel_id = bot.channel_id
+        self.endpoint = bot.endpoint
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -46,7 +49,7 @@ class DevCommands(commands.Cog, name="dev_commands"):
     async def gorilla_embedder(self, interaction, prompt, message):
         embed = discord.Embed(
                 title="GorillaLLM 🦍",
-                description=f"Author: {interaction.user.name}\nPrompt: {prompt}\n\Response:\n{message}",
+                description=f"Author: {interaction.user.name}\nPrompt: {prompt}\nResponse:\n{message}",
                 color=0x9C84EF
             )
         return embed
