@@ -142,7 +142,7 @@ Tensor:"""
             llm=self.llm,
             verbose=True
         )
-        final_message = remove_char_name_from_string(message_content)
+        final_message = await self.remove_char_name_from_string(message_content)
         formatted_message = f"{name}: {final_message}"
 
         # first, add the user's message to the memory
