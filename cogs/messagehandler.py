@@ -111,7 +111,7 @@ class ListenerCog(commands.Cog, name="listener"):
             return
 
         # if a reply message is not for the bot - do not reply but add to history nr 
-        if message.mentions and self.bot.user.name not in [mention.name for mention in message.mentions] or self.bot.user.name.lower() not in message.clean_content.lower():
+        if message.mentions and self.bot.user.name not in [mention.name for mention in message.mentions]:
             await self.bot.get_cog("chatbot").chat_command_nr(message, message.content)
             return  
             
@@ -124,26 +124,28 @@ class ListenerCog(commands.Cog, name="listener"):
         """
         # if message is channel id argument or DM or
         if message.channel.id in [int(channel_id) for channel_id in self.bot.guild_ids] or message.guild is None:
-            # image handling
-            if await self.has_image_attachment(message):
-                image_response = await self.bot.get_cog("image_caption").image_comment(message, message.clean_content)
-                response = await self.bot.get_cog("chatbot").chat_command(message, image_response)
-                if response:
-                    async with message.channel.typing():
-                        await asyncio.sleep(1)  # Simulate some work being done
-                        await message.reply(response)
-            else:
-                # No image. Normal text response
-
-                response = await self.bot.get_cog("chatbot").chat_command(message, message.clean_content)
-                if response:
-                    async with message.channel.typing():
-                        await asyncio.sleep(1)  # Simulate some work being done
-                        if random.random() < 0.8:
-                            await message.channel.send(response)
-                        else:
+            if message.mentions and self.bot.user.name in [mention.name for mention in message.mentions] or self.bot.user.name.lower() in message.clean_content.lower():
+                # image handling
+                if await self.has_image_attachment(message):
+                    image_response = await self.bot.get_cog("image_caption").image_comment(message, message.clean_content)
+                    response = await self.bot.get_cog("chatbot").chat_command(message, image_response)
+                    if response:
+                        async with message.channel.typing():
+                            await asyncio.sleep(1)  # Simulate some work being done
                             await message.reply(response)
-                            return
+                else:
+                    # No image. Normal text response
+                    response = await self.bot.get_cog("chatbot").chat_command(message, message.clean_content)
+                    if response:
+                        async with message.channel.typing():
+                            await asyncio.sleep(1)  # Simulate some work being done
+                            if random.random() < 0.8:
+                                await message.channel.send(response)
+                            else:
+                                await message.reply(response)
+                                return
+            else:
+                await self.bot.get_cog("chatbot").chat_command_nr(message, message.content)
 
 
 async def setup(bot):
