@@ -2,23 +2,49 @@ from typing import Any, Dict, List
 from langchain.memory.chat_memory import BaseChatMemory
 from langchain.schema import BaseMessage
 
+
 def get_buffer_string(
     messages: List[BaseMessage], human_prefix: str = "Human", ai_prefix: str = "AI"
 ) -> str:
+   
+    # Select all HumanMessages
+    print(messages)
     """Get buffer string of messages."""
     string_messages = []
-    for m in messages:
-        string_messages.append(f"{m.content}")
+    try:
+        for m in messages:
+            if isinstance(m, HumanMessage):
+                role = human_prefix
+            elif isinstance(m, AIMessage):
+                role = ai_prefix
+            elif isinstance(m, SystemMessage):
+                role = "System"
+            elif isinstance(m, ChatMessage):
+                role = m.role
+            else:
+                raise ValueError(f"Got unsupported message type: {m}")
+            if role == human_prefix:
+                string_messages.append(f"{m.content}")
+            else:
+                string_messages.append(f"{role}: {m.content}")
+    # print a detailed message of the error and return an empty string
+    except Exception as e:
+        print(e)
+        return ""
+
+
+
     return "\n".join(string_messages)
+
 
 
 class CustomBufferWindowMemory(BaseChatMemory):
     """Buffer for storing conversation memory."""
 
+    human_prefix: str = "Human"
     ai_prefix: str = "AI"
     memory_key: str = "history"  #: :meta private:
     k: int = 5
-
     @property
     def buffer(self) -> List[BaseMessage]:
         """String buffer of memory."""
@@ -39,14 +65,11 @@ class CustomBufferWindowMemory(BaseChatMemory):
     def load_memory_variables(self, inputs: Dict[str, Any]) -> Dict[str, str]:
         """Return history buffer."""
 
-    def load_memory_variables(self, inputs: Dict[str, Any]) -> Dict[str, str]:
-        """Return history buffer."""
-
         buffer: Any = self.buffer[-self.k * 2 :] if self.k > 0 else []
         if not self.return_messages:
             buffer = get_buffer_string(
                 buffer,
-                human_prefix="",
+                human_prefix=self.human_prefix,
                 ai_prefix=self.ai_prefix,
             )
         return {self.memory_key: buffer}
