@@ -58,37 +58,61 @@ class KoboldApiLLM(LLM):
         return "custom"
 
     def _call(self, prompt: str, stop: Optional[List[str]]=None) -> str:
-        response = requests.post(
-            Kobold_api_url + "/api/v1/generate",
-            json = {
-                "prompt": prompt,
-                "use_story": False,
-                "use_authors_note": False,
-                "use_world_info": False,
-                "use_memory": False,
-                "max_context_length": 1800,
-                "max_length": 512,
-                "rep_pen": 1.08,
-                "rep_pen_range": 1024,
-                "rep_pen_slope": 0.9,
-                "temperature": 0.5,
-                "tfs": 0.9,
-                "top_p": 0.7,
-                "frmttriminc": True,
-                "typical": 1,
-                "sampler_order": [6, 0, 1, 2, 3, 4, 5]
-            }
-        )
+        # Prepare the JSON data
+        data = {
+            "prompt": prompt,
+            "use_story": False,
+            "use_authors_note": False,
+            "use_world_info": False,
+            "use_memory": False,
+            "max_context_length": 1800,
+            "max_length": 512,
+            "rep_pen": 1.12,
+            "rep_pen_range": 1024,
+            "rep_pen_slope": 0.9,
+            "temperature": 0.6,
+            "tfs": 0.9,
+            "top_p": 0.95,
+            "top_k": 0.6,
+            "typical": 1,
+            "frmttriminc": True
+        }
+
+        # Add the stop sequences to the data if they are provided
+        if stop is not None:
+            data["stop_sequence"] = stop
+
+        # Send a POST request to the Kobold API with the data
+        response = requests.post(f"{Kobold_api_url}/api/v1/generate", json=data)
+
+        # Raise an exception if the request failed
         response.raise_for_status()
 
-        return response.json()["results"][0]["text"].strip()
+        # Check for the expected keys in the response JSON
+        json_response = response.json()
+        if "results" in json_response and len(json_response["results"]) > 0 and "text" in json_response["results"][0]:
+            # Return the generated text
+            text = json_response["results"][0]["text"].strip().replace("'''", "```")
+
+            # Remove the stop sequence from the end of the text, if it's there
+            for sequence in stop:
+                if text.endswith(sequence):
+                    text = text[: -len(sequence)].rstrip()
+
+            print(text)
+            return text
+        else:
+            raise ValueError("Unexpected response format from Kobold API")
+
+
+    
+    def __call__(self, prompt: str, stop: Optional[List[str]]=None) -> str:
+        return self._call(prompt, stop)
 
     @property
     def _identifying_params(self) -> Mapping[str, Any]:
         """Get the identifying parameters."""
-        return {
-
-        }
+        return {}
 
 
     
@@ -97,9 +121,8 @@ class Chatbot:
         self.stop_token = "</s>"
         self.bot = bot
         self.histories = {}  # Initialize the history dictionary
-        self.llm = KoboldApiLLM()
-        self.stop_names = bot.stop_names
-
+        self.stop_sequences = {} # Initialize the stop sequences dictionary
+        
 
         # read character data from JSON file
         with open(char_filename, "r", encoding="utf-8") as f:
@@ -109,117 +132,87 @@ class Chatbot:
             self.char_greeting = data["char_greeting"]
             self.world_scenario = data["world_scenario"]
             self.example_dialogue = data["example_dialogue"]
+        self.memory = CustomBufferWindowMemory(k=10, ai_prefix=self.char_name)
         self.history = "[Beginning of Conversation]"
+        self.llm = KoboldApiLLM()
+        self.template = f"""The following is a friendly conversation between a human and an AI. The AI is talkative and provides lots of specific details from its context. If the AI does not know the answer to a question, it truthfully says it does not know.
         
+Current conversation:
+{{history}}
+{{input}}
+{self.char_name}:"""
+        self.PROMPT = PromptTemplate(input_variables=["history", "input"], template=self.template)
+        self.conversation = ConversationChain(
+            prompt=self.PROMPT,
+            llm=self.llm,
+            verbose=True,
+            memory=self.memory,
+        )
+
 
 
 
     async def get_memory_for_channel(self, channel_id):
         """Get the memory for the channel with the given ID. If no memory exists yet, create one."""
         if channel_id not in self.histories:
-            self.histories[channel_id] = CustomBufferWindowMemory(k=10, memory_key="chat_history")
+            self.histories[channel_id] = CustomBufferWindowMemory(k=10, ai_prefix=self.char_name)
+            self.memory = self.histories[channel_id]
         return self.histories[channel_id]
 
+    async def get_stop_sequence_for_channel(self, channel_id, name):
+        name_token = f"{name}:"
+        if channel_id not in self.stop_sequences:
+            self.stop_sequences[channel_id] = []
+        if name_token not in self.stop_sequences[channel_id]:
+            self.stop_sequences[channel_id].append(name_token)
+        return self.stop_sequences[channel_id]
 
-    async def remove_char_name_from_string(self, string):
-        prefix_to_remove = self.char_name + "@"
-
-        if string.startswith(prefix_to_remove):
-            return string[len(prefix_to_remove):].lstrip()  # lstrip() is used to remove any leading whitespace
-        else:
-            return string
 
 
-    
-    #create a function that will check if a name.lower() is in the self.stop_names list. If not it will add it to the list
-    async def check_stop_names(self, name):
-        if name.lower() not in self.stop_names:
-            self.stop_names.append(name.lower())
-        return name
 
-    #function that will check if an item from the list "\n" + name.lower() + ":" is in a string. if so it will split it and return everything before that to prevent the bot from responding as others.
-    async def use_stop_names(self, string):
-        for name in self.stop_names:
-            check_name = "\n" + name.lower() + ":"
-            if "\n" + name.lower() + ":" in string:
-                return string.split("\n" + name.lower() + ":")[0]
-        return string
+
+        
+
+
 
 
 
     async def generate_response(self, message, message_content) -> None:
-
         channel_id = str(message.channel.id)
-        name = await self.check_stop_names(message.author.display_name)
-
+        name = message.author.display_name
         memory = await self.get_memory_for_channel(channel_id)
-        # save the conversation to the chatlog 
-        self.template = f"""
-### Instructions:
-The following is group chat. Use the provided input for context. Only reply as {self.char_name}.
+        stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
+        formatted_message = f"{name}: {message_content}"
 
-### Input:
-{self.char_persona}
-Current conversation:
-{self.char_greeting}
-{memory.load_memory_variables('chat_history')['chat_history']}
-{{input}}
-
-### Response:
-Tensor:"""
-        self.PROMPT = PromptTemplate(input_variables=["input"], template=self.template)
-        self.conversation = LLMChain(
+        # Create a conversation chain using the channel-specific memory
+        conversation = ConversationChain(
             prompt=self.PROMPT,
             llm=self.llm,
-            verbose=True
+            verbose=True,
+            memory=memory,
         )
-        final_message = await self.remove_char_name_from_string(message_content)
-        formatted_message = f"{name}: {final_message}"
 
-        # first, add the user's message to the memory
-        # self.memory.add_user_message(formatted_message)
+        input_dict = {
+            "input": formatted_message, 
+            "stop": stop_sequence
+        }
+        response = conversation(input_dict)
 
-        # then, generate the AI's response
-        result = self.conversation(formatted_message)
+        return response["response"]
 
-        response = result["text"].split("### Response:")[0]
-        result_text = result["text"]
-        trimmed = await self.use_stop_names(result_text) 
-        response = trimmed.replace("'''", "```")
-
-        # add the AI's response to the memory
-        memory.save_context({"input": f"{formatted_message}{self.stop_token}"}, {"output": f"{self.char_name}: {response}{self.stop_token}"})
-        # memory.save_context({"input": f"{formatted_message}"}, {"output": f"{self.char_name}: {response}"})
-        # dicts = messages_to_dict(self.memory.messages)
-        # self.history = '\n'.join(message['data']['content'] for message in dicts)
-
-        return response
 
     async def add_history(self, message, message_content) -> None:
         channel_id = str(message.channel.id)
-
+        name = message.author.display_name
         memory = await self.get_memory_for_channel(channel_id)
+        stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
+        formatted_message = f"{name}: {message_content}"
         
-        name = await self.check_stop_names(message.author.display_name)
-        # memory.add_input_only(f"{name}: {message_content}")
-        memory.add_input_only(f"{name}: {message_content}{self.stop_token}")
+        name = message.author.display_name
+        memory.add_input_only(f"{name}: {message_content}")
         # dicts = messages_to_dict(self.memory.messages)
         # self.history = '\n'.join(message['data']['content'] for message in dicts)
         print(f"added to history: {name}: {message_content}")
-
-    async def add_input_output(self, interaction, message_content, response) -> None:
-        channel_id = str(interaction.channel.id)
-
-        memory = await self.get_memory_for_channel(channel_id)
-
-        name = await self.check_stop_names(interaction.user.display_name)
-        formatted_message = f"{name}: {message_content}"
-        memory.save_context({"input": f"{formatted_message}{self.stop_token}"}, {"output": f"{self.char_name}: {response}{self.stop_token}"})
-        # memory.save_context({"input": f"{formatted_message}"}, {"output": f"{self.char_name}: {response}"})
-        print("interaction added to history")
-
-
-
 
 
 class ChatbotCog(commands.Cog, name="chatbot"):
@@ -247,17 +240,11 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         response = await self.chatbot.add_history(message, message_content)
         return None
 
-    # Normal Chat handler
-    @commands.command(name="agent")
-    async def agent_command(self, interaction, prompt, response) -> None:
-        response = await self.chatbot.add_input_output(interaction, prompt, response)
-        return response
-
     @app_commands.command(name="instruct", description="Instruct the bot to say something")
     async def instruct(self, interaction: discord.Interaction, prompt: str):
         await interaction.response.send_message(embed=discord.Embed(
                 title=f"{interaction.user.display_name} used Instruct 👨‍🏫",
-                description=f"Instructions: {prompt}",
+                description=f"Instructions: {prompt}\nGenerating response\nPlease wait..",
                 color=0x9C84EF
             ))
         
@@ -279,7 +266,6 @@ Below is an instruction that describes a task. Write a response that appropriate
             response = results[0]['text']
             print(response)
             # await interaction.channel.send(response)
-            await self.agent_command(interaction, prompt, response)
             await interaction.channel.send(response)
     
 
