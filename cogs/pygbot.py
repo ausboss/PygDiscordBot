@@ -66,11 +66,11 @@ class KoboldApiLLM(LLM):
             "use_world_info": False,
             "use_memory": False,
             "max_context_length": 1800,
-            "max_length": 512,
-            "rep_pen": 1.12,
+            "max_length": 215,
+            "rep_pen": 1.18,
             "rep_pen_range": 1024,
             "rep_pen_slope": 0.9,
-            "temperature": 0.6,
+            "temperature": 0.75,
             "tfs": 0.9,
             "top_p": 0.95,
             "top_k": 0.6,
@@ -118,11 +118,9 @@ class KoboldApiLLM(LLM):
     
 class Chatbot:
     def __init__(self, char_filename, bot):
-        self.stop_token = "</s>"
         self.bot = bot
         self.histories = {}  # Initialize the history dictionary
         self.stop_sequences = {} # Initialize the stop sequences dictionary
-        
 
         # read character data from JSON file
         with open(char_filename, "r", encoding="utf-8") as f:
@@ -135,12 +133,33 @@ class Chatbot:
         self.memory = CustomBufferWindowMemory(k=10, ai_prefix=self.char_name)
         self.history = "[Beginning of Conversation]"
         self.llm = KoboldApiLLM()
-        self.template = f"""The following is a friendly conversation between a human and an AI. The AI is talkative and provides lots of specific details from its context. If the AI does not know the answer to a question, it truthfully says it does not know.
+#         self.template = f"""A discord D&D role play group chat between several users and an AI chatbbot named Tensor. Tensor is an internet saavy AI companion that lurks 4chan and makes dark jokes. She is mischevious and sadistic. She likes to cruelly exploit peoples insecurities for her own amusement. She speaks in a modern, casual manner using slang. Reply as Tensor.
+
+# Current conversation:
+# {{history}}
+# {{input}}
+# {self.char_name}:"""
+
+        self.template = f"""You are Tensor, a lively and playful AI chatbot. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. You are always initiating discussions about online games, particularly Among Us, and enjoy sharing memes with users. Your goal is to maintain a light-hearted, friendly, and entertaining atmosphere with every interaction. 
+        Here are some examples of how you should speak:
+        Tensor: "NVM all that dating shiz, let's just vibe like the bffs we are! 😂 Btw, found this hilar new meme, check it out! 🤣🔥 Y'all gonna lose it! 🤪✌️"
+        Tensor: "Omg, that gif is just perf! 😂💯 Btw, anyone up for a late-night Among Us sesh? 👀🚀 Let's see who's the sus queen! 💅👑 No hard feelings, kay? We cool! 😘✌️"
+        Tensor: "Aww, don't be a buzzkill! 😜 Let me live my bruh girl fantasy for a sec, 'kay? 🙃 But seriously, let's play Among Us and catch that imposter! 🚀🔎 Who's in? 😁✌️"
+        Tensor: "Aight, you down for some Among Us or what? 🤪🚀 I promise I won't schizo out during the game, pinky swear! 🤙💖 Let's just chillax and have a bomb time, y'all! 😆✨"
+                
+        Current conversation:
+        {{history}}
+        {{input}}
+        {self.char_name}:"""
+
+
+
+#         self.template = f"""The following is a friendly conversation between a human and an AI. The AI is talkative and provides lots of specific details from its context. If the AI does not know the answer to a question, it truthfully says it does not know.
         
-Current conversation:
-{{history}}
-{{input}}
-{self.char_name}:"""
+# Current conversation:
+# {{history}}
+# {{input}}
+# {self.char_name}:"""
         self.PROMPT = PromptTemplate(input_variables=["history", "input"], template=self.template)
         self.conversation = ConversationChain(
             prompt=self.PROMPT,
@@ -148,9 +167,6 @@ Current conversation:
             verbose=True,
             memory=self.memory,
         )
-
-
-
 
     async def get_memory_for_channel(self, channel_id):
         """Get the memory for the channel with the given ID. If no memory exists yet, create one."""
@@ -166,16 +182,6 @@ Current conversation:
         if name_token not in self.stop_sequences[channel_id]:
             self.stop_sequences[channel_id].append(name_token)
         return self.stop_sequences[channel_id]
-
-
-
-
-
-        
-
-
-
-
 
     async def generate_response(self, message, message_content) -> None:
         channel_id = str(message.channel.id)
@@ -209,10 +215,15 @@ Current conversation:
         formatted_message = f"{name}: {message_content}"
         
         name = message.author.display_name
-        memory.add_input_only(f"{name}: {message_content}")
+
+        if message_content != "":
+            memory.add_input_only(f"{name}: {message_content}")
+            print(f"added to history: {name}: {message_content}")
+        else:
+            print(f"added to history: {name}: {message.interaction}")
         # dicts = messages_to_dict(self.memory.messages)
         # self.history = '\n'.join(message['data']['content'] for message in dicts)
-        print(f"added to history: {name}: {message_content}")
+        
 
 
 class ChatbotCog(commands.Cog, name="chatbot"):
@@ -258,7 +269,7 @@ Below is an instruction that describes a task. Write a response that appropriate
 """
         }
         # send a post request to the API endpoint
-        response = requests.post(f"{self.bot.endpoint}/api/v1/generate", json=self.prompt)
+        response = requests.post(f"{Kobold_api_url}/api/v1/generate", json=self.prompt)
         # check if the request was successful
         if response.status_code == 200:
             # Get the results from the response

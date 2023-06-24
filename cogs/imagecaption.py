@@ -33,7 +33,7 @@ class ImageCaptionCog(commands.Cog, name="image_caption"):
             words = parts[-1].split("-")[:-1]
             # Join the words into a sentence
             sentence = " ".join(words)
-            message_content = f"{message_content} [{message.author.name} posts an animated {sentence} ]"
+            message_content = f"{message_content} [{message.author.display_name} posts an animated {sentence} ]"
             message_content = message_content.replace(tenor_url, "")
             return message_content
 
@@ -49,7 +49,7 @@ class ImageCaptionCog(commands.Cog, name="image_caption"):
 
         # Generate the image caption
         caption = self.caption_image(image)
-        message_content = f"{message_content} [{message.author.name} posts a picture of {caption}]"
+        message_content = f"{message_content} [{message.author.display_name} posts a picture of {caption}]"
         return message_content
 
     def caption_image(self, raw_image):
