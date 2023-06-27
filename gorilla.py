@@ -4,8 +4,6 @@ from discord.ext import commands
 import openai
 import urllib.parse
 
-openai.api_key = "EMPTY" # Key is ignored and does not matter
-openai.api_base = "http://34.132.127.197:8000/v1"
 
 
 
@@ -13,6 +11,8 @@ class GorillaLLMCog(commands.Cog, name="gorilla_llm"):
     def __init__(self, bot):
         self.bot = bot
         self.model = "gorilla-7b-hf-v0"
+        openai.api_key = "EMPTY"  # Key is ignored and does not matter
+        openai.api_base = "http://34.132.127.197:8000/v1"
 
     # Report issues
     async def raise_issue(self, e, model, prompt):
@@ -26,7 +26,7 @@ class GorillaLLMCog(commands.Cog, name="gorilla_llm"):
     async def gorilla_query(self, interaction: discord.Interaction) -> None:
         try:
             prompt = interaction
-            completion = openai.ChatCompletion.create(
+            completion = self.openai.ChatCompletion.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}]
             )

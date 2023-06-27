@@ -14,18 +14,16 @@ def embedder(msg):
 class DevCommands(commands.Cog, name="dev_commands"):
     def __init__(self, bot):
         self.bot = bot
-        self.guild_ids = bot.guild_ids
-        self.channel_id = bot.channel_id
+        self.chanel_list = bot.channel_list
         self.endpoint = bot.endpoint
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print("Dev Commands cog loaded.")
+        self.bot.logger.info("Dev Commands cog loaded.")
 
     @commands.command(name='sync', description='sync up')
     async def sync(self, interaction: discord.Interaction) -> None:
         await self.bot.tree.sync()
-        print("synced")
 
     @app_commands.command(name="test", description="Test command")
     async def test(self, interaction: discord.Interaction):

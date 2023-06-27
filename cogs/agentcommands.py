@@ -1,34 +1,21 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-import json
-import os
-import re
-import requests
-from getpass import getpass
-from pathlib import Path
-import inspect
-import langchain
-from langchain.chains import ConversationChain, LLMChain, LLMMathChain, TransformChain, SequentialChain
-from langchain.chat_models import ChatOpenAI
-from langchain.docstore import InMemoryDocstore
-from langchain.llms.base import LLM, Optional, List, Mapping, Any
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.memory import (
-    ChatMessageHistory,
-    ConversationBufferMemory,
-    ConversationBufferWindowMemory,
-    ConversationSummaryBufferMemory,
-    VectorStoreRetrieverMemory,
-)
-from langchain.prompts.prompt import PromptTemplate
-from langchain.schema import messages_from_dict, messages_to_dict
-from langchain.vectorstores import Chroma
-from langchain.agents import load_tools
-from langchain.agents import initialize_agent
-from cogs.pygbot import KoboldApiLLM
-from langchain.utilities import WikipediaAPIWrapper
 
+import os
+
+from cogs.pygbot import KoboldApiLLM
+
+from langchain import OpenAI
+from langchain.tools import BaseTool, StructuredTool, Tool
+from langchain.agents import initialize_agent
+
+from langchain.utilities import WikipediaAPIWrapper
+from langchain.tools import DuckDuckGoSearchRun
+from langchain.utilities import PythonREPL
+
+
+os.environ["OPENAI_API_KEY"] = ""
 
 def embedder(msg):
     embed = discord.Embed(
@@ -42,16 +29,69 @@ def embedder(msg):
 class AgentCommands(commands.Cog, name="agent_commands"):
     def __init__(self, bot):
         self.bot = bot
-        self.llm = KoboldApiLLM()
+        self.llm = ""
 
-    @app_commands.command(name="agent_test", description="Test command")
-    async def agent_test(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Agent Test passed.", delete_after=3)
+        # Tools
+        self.wikipedia = WikipediaAPIWrapper() # Wikipedia tool
+        self.search = DuckDuckGoSearchRun() # DuckDuckGo tool
+        self.python_repl = PythonREPL()  # Python REPL tool
+        
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print("Agent Commands cog loaded.")
+        self.wikipedia_tool = Tool(
+            name='wikipedia',
+            func= self.wikipedia.run,
+            description="Useful for when you need to look up a topic, country or person on wikipedia"
+        )
 
+        self.duckduckgo_tool = Tool(
+            name='DuckDuckGo Search',
+            func= self.search.run,
+            description="Useful for when you need to do a search on the internet to find information that another tool can't find. be specific with your input."
+        )
+
+        
+
+
+    @app_commands.command(name="searchweb", description="Query Web")
+    async def search_web(self, interaction: discord.Interaction, prompt: str):
+
+        self.llm = OpenAI(temperature=0)
+
+        name = interaction.user.display_name
+        channel_id = interaction.channel.id
+
+        await interaction.response.send_message(embed=discord.Embed(
+        title=f"{interaction.user.display_name} used Search Web 🌐",
+        description=f"Prompt: {prompt}",
+        color=0x9C84EF
+        ))
+
+        tools = [
+            Tool(
+                name = "python repl",
+                func=self.python_repl.run,
+                description="useful for when you need to use python to answer a question. You should input python code"
+            )
+        ]
+
+        tools.append(self.duckduckgo_tool)
+        tools.append(self.wikipedia_tool)
+        llm = OpenAI(temperature=0)
+
+        zero_shot_agent = initialize_agent(
+            agent="zero-shot-react-description",
+            tools=tools,
+            llm=llm,
+            verbose=True,
+            max_iterations=3,
+        )
+
+        observation = zero_shot_agent.run(prompt)
+
+        response = await self.bot.get_cog("chatbot").agent_command(name, channel_id, prompt, observation)
+
+
+        await interaction.channel.send(response)
 
     async def embedder(self, msg):
         embed = discord.Embed(
@@ -59,6 +99,19 @@ class AgentCommands(commands.Cog, name="agent_commands"):
                 color=0x9C84EF
             )
         return embed
+
+
+
+
+    @app_commands.command(name="agent_test", description="Test command")
+    async def agent_test(self, interaction: discord.Interaction):
+        await interaction.response.send_message("Agent Test passed.", delete_after=3)
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self.bot.logger.info("Agent Commands cog loaded.")
+
+
         
     @app_commands.command(name="gorillallm", description="Query Gorilla")
     async def gorilla_call(self, interaction: discord.Interaction, prompt: str):
@@ -72,6 +125,8 @@ class AgentCommands(commands.Cog, name="agent_commands"):
         
         await self.bot.get_cog("chatbot").agent_command(interaction, prompt, response)
         await interaction.channel.send(response)
+
+
 
     
     # @app_commands.command(name="wikipedia", description="Search Wikipedia")
