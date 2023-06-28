@@ -67,9 +67,3 @@ class OobaApiLLM(LLM):
     @property
     def _identifying_params(self) -> Mapping[str, Any]:
         return {'ooba_api_url': self.ooba_api_url} #return the ooba_api_url as an identifying parameter
-
-# create if main block
-if __name__ == '__main__':
-    llm = OobaApiLLM(ooba_api_url="http://192.168.120.201:5000")
-    result = llm("This is a test prompt.")
-    print(result)

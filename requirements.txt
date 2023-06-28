@@ -6,3 +6,6 @@ transformers
 langchain
 chromadb
 openai
+aiosqlite
+duckduckgo-search
+wikipedia

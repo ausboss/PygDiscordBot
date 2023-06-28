@@ -24,8 +24,7 @@ from langchain.memory import (
     ChatMessageHistory,
     ConversationBufferMemory,
     ConversationBufferWindowMemory,
-    ConversationSummaryBufferMemory,
-    VectorStoreRetrieverMemory,
+    ConversationSummaryBufferMemory
 )
 from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import messages_from_dict, messages_to_dict
@@ -42,7 +41,7 @@ import os
 
 Kobold_api_url = str(os.getenv("ENDPOINT")).rstrip("/")
 
-
+print("pygbot connected")
 
 def embedder(msg):
     embed = discord.Embed(
@@ -201,7 +200,7 @@ class Chatbot:
         self.memory = CustomBufferWindowMemory(k=10, ai_prefix=self.char_name)
         self.history = "[Beginning of Conversation]"
         # self.llm = KoboldApiLLM()
-        self.llm = OobaApiLLM(ooba_api_url="http://192.168.120.201:5000")
+        self.llm = OobaApiLLM(ooba_api_url=self.bot.endpoint)
         self.template = f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 ### Instruction:
@@ -243,6 +242,14 @@ Tensor: "Aight, you down for some Among Us or what? 🤪🚀 I promise I won't s
             self.stop_sequences[channel_id].append(name_token)
         return self.stop_sequences[channel_id]
 
+    # this command will detect if the bot is trying to send  \nself.char_name: in its message and replace it with an empty string
+    async def detect_and_replace(self, message_content):
+        if f"\n{self.char_name}:" in message_content:
+            message_content = message_content.replace(f"\n{self.char_name}:", "")
+        return message_content
+    
+    
+
     async def generate_response(self, message, message_content) -> None:
         channel_id = str(message.channel.id)
         name = message.author.display_name
@@ -263,25 +270,27 @@ Tensor: "Aight, you down for some Among Us or what? 🤪🚀 I promise I won't s
             "input": formatted_message, 
             "stop": stop_sequence
         }
-        response = conversation(input_dict)
 
-        return response["response"]
+        response_text = conversation(input_dict)
+
+        response = await self.detect_and_replace(response_text["response"])
+
+        return response
 
 
-    async def add_history(self, message, message_content) -> None:
-        channel_id = str(message.channel.id)
-        name = message.author.display_name
+
+    #this command receives a name, channel_id, and message_content then adds it to history
+    async def add_history(self, name, channel_id, message_content) -> None:
+        # get the memory for the channel
         memory = await self.get_memory_for_channel(channel_id)
-        await self.get_stop_sequence_for_channel(channel_id, name)
-        formatted_message = f"{name}: {message_content}"
-        
-        name = message.author.display_name
 
-        if message_content != "":
-            memory.add_input_only(formatted_message)
-            print(f"added to history: {formatted_message}")
-        else:
-            pass
+        formatted_message = f"{name}: {message_content}"
+
+        # add the message to the memory
+        print(f"adding message to memory: {formatted_message}")
+        memory.add_input_only(formatted_message)
+        return None
+
     
     # receives a prompt from the user and an observation from the agent then sends to the LLM for a reply
     async def agent_command(self, name, channel_id, prompt, observation) -> None:
@@ -324,13 +333,7 @@ Tensor: "Aight, you down for some Among Us or what? 🤪🚀 I promise I won't s
 
         return response["response"]
 
-        
-        
-
-
-
-
-    async def generate_response_without_message(self, name, channel_id: str) -> None:
+    async def generate_response_without_message(self, name, channel_id) -> None:
         memory = await self.get_memory_for_channel(channel_id)
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
         print(f"stop sequences: {stop_sequence}")
@@ -402,9 +405,11 @@ class ChatbotCog(commands.Cog, name="chatbot"):
 
     # No Response Handler
     @commands.command(name="chatnr")
-    async def chat_command_nr(self, message, message_content) -> None:
-        await self.chatbot.add_history(message, message_content)
+    # this function needs to take a name, channel_id, and message_content then send to history
+    async def chat_command_nr(self, name, channel_id, message_content) -> None:
+        await self.chatbot.add_history(name, channel_id, message_content)
         return None
+    
 
     @app_commands.command(name="instruct", description="Instruct the bot to say something")
     async def instruct(self, interaction: discord.Interaction, prompt: str):
@@ -422,13 +427,15 @@ Below is an instruction that describes a task. Write a response that appropriate
 ### Response:
 """
         }
-        # send a post request to the API endpoint
-        response = requests.post(f"{Kobold_api_url}/api/v1/generate", json=self.prompt)
+        channel_id = interaction.channel.id
+        print(channel_id)
+        await self.chatbot.add_history(interaction.user.display_name, str(channel_id), prompt)
+        response = self.chatbot.llm(self.prompt["prompt"])
         # check if the request was successful
-        if response.status_code == 200:
-            # Get the results from the response
-            results = response.json()['results']
-            response = results[0]['text']
+        if response:
+            await self.chatbot.add_history(self.chatbot.char_name, str(channel_id), response)
+
+
             print(response)
             await interaction.channel.send(response)
 

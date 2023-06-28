@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-
+import os
 
 
 def embedder(msg):
@@ -11,11 +11,46 @@ def embedder(msg):
         )
     return embed
 
+
+class ReloadCogSelect(discord.ui.Select):
+    def __init__(self, parent):
+        self.parent = parent
+        options = [
+            discord.SelectOption(label=cog[:-3], description="")
+            for cog in os.listdir(f"{os.path.realpath(os.path.dirname(__file__))}")
+            if cog.endswith('.py')
+        ]
+        super().__init__(
+            placeholder="Choose a cog to reload...",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        cog = self.values[0]
+        self.parent.bot.reload_extension(f"cogs.{cog}")
+        await interaction.response.send_message(f"Reloaded {cog} cog.", delete_after=5)
+
+
+class ReloadCogView(discord.ui.View):
+    def __init__(self, parent):
+        super().__init__()
+        self.add_item(ReloadCogSelect(parent))
+
+
 class DevCommands(commands.Cog, name="dev_commands"):
     def __init__(self, bot):
         self.bot = bot
         self.chanel_list = bot.channel_list
         self.endpoint = bot.endpoint
+
+    @app_commands.command(name="reload", description="Reload a cog")
+    async def reload(self, interaction: discord.Interaction):
+        view = ReloadCogView(self)
+        await interaction.response.send_message("Select a cog to reload:", view=view)
+
+
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -28,23 +63,6 @@ class DevCommands(commands.Cog, name="dev_commands"):
     @app_commands.command(name="test", description="Test command")
     async def test(self, interaction: discord.Interaction):
         await interaction.response.send_message("Test passed.", delete_after=3)
-
-    @app_commands.command(name="reload", description="reload cog")
-    async def reload(self, interaction: discord.Interaction, cog: str):
-        try:
-            await self.bot.reload_extension(f"cogs.{cog}")
-            await interaction.response.send_message(embed=embedder(f"Reloaded `{cog}`"), delete_after=3)
-        except Exception:
-            await interaction.response.send_message(embed=embedder(f"Reloaded `{cog}`"), delete_after=3)
-
-    async def embedder(self, msg):
-        embed = discord.Embed(
-                description=f"{msg}",
-                color=0x9C84EF
-            )
-        return embed
-
-
 
 
 
