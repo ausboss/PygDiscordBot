@@ -242,6 +242,14 @@ Tensor: "Aight, you down for some Among Us or what? 🤪🚀 I promise I won't s
             self.stop_sequences[channel_id].append(name_token)
         return self.stop_sequences[channel_id]
 
+    # this command will detect if the bot is trying to send  \nself.char_name: in its message and replace it with an empty string
+    async def detect_and_replace(self, message_content):
+        if f"\n{self.char_name}:" in message_content:
+            message_content = message_content.replace(f"\n{self.char_name}:", "")
+        return message_content
+    
+    
+
     async def generate_response(self, message, message_content) -> None:
         channel_id = str(message.channel.id)
         name = message.author.display_name
@@ -262,9 +270,12 @@ Tensor: "Aight, you down for some Among Us or what? 🤪🚀 I promise I won't s
             "input": formatted_message, 
             "stop": stop_sequence
         }
-        response = conversation(input_dict)
 
-        return response["response"]
+        response_text = conversation(input_dict)
+
+        response = await self.detect_and_replace(response_text["response"])
+
+        return response
 
 
 
