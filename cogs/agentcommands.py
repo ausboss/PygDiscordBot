@@ -4,7 +4,6 @@ from discord.ext import commands
 
 import os
 
-from cogs.pygbot import KoboldApiLLM
 
 from langchain import OpenAI
 from langchain.tools import BaseTool, StructuredTool, Tool
@@ -93,12 +92,6 @@ class AgentCommands(commands.Cog, name="agent_commands"):
 
         await interaction.channel.send(response)
 
-    async def embedder(self, msg):
-        embed = discord.Embed(
-                description=f"{msg}",
-                color=0x9C84EF
-            )
-        return embed
 
 
 
@@ -113,18 +106,18 @@ class AgentCommands(commands.Cog, name="agent_commands"):
 
 
         
-    @app_commands.command(name="gorillallm", description="Query Gorilla")
-    async def gorilla_call(self, interaction: discord.Interaction, prompt: str):
-        await interaction.response.send_message(embed=discord.Embed(
-        title=f"{interaction.user.display_name} used GorillaLLM 🦍",
-        description=f"Prompt: {prompt}",
-        color=0x9C84EF
-        ))
+    # @app_commands.command(name="gorillallm", description="Query Gorilla")
+    # async def gorilla_call(self, interaction: discord.Interaction, prompt: str):
+    #     await interaction.response.send_message(embed=discord.Embed(
+    #     title=f"{interaction.user.display_name} used GorillaLLM 🦍",
+    #     description=f"Prompt: {prompt}",
+    #     color=0x9C84EF
+    #     ))
         
-        response = await self.bot.get_cog("gorilla_llm").gorilla_query(prompt)
+    #     response = await self.bot.get_cog("gorilla_llm").gorilla_query(prompt)
         
-        await self.bot.get_cog("chatbot").agent_command(interaction, prompt, response)
-        await interaction.channel.send(response)
+    #     await self.bot.get_cog("chatbot").agent_command(interaction, prompt, response)
+    #     await interaction.channel.send(response)
 
 
 

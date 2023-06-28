@@ -4,7 +4,7 @@ import requests
 from pydantic import Field
 
 class KoboldApiLLM(LLM):
-    ooba_api_url: str = Field(...)
+    endpoint: str = Field(...)
 
     @property
     def _llm_type(self) -> str:
@@ -36,9 +36,7 @@ class KoboldApiLLM(LLM):
             data["stop_sequence"] = stop
 
         # Send a POST request to the Kobold API with the data
-        response = requests.post(f"http://127.0.0.1:5000/api/v1/generate", json=data)
-
-        # Raise an exception if the request failed
+        response = requests.post(f"{self.endpoint}/api/v1/generate", json=data)
         response.raise_for_status()
 
         # Check for the expected keys in the response JSON
@@ -66,4 +64,4 @@ class KoboldApiLLM(LLM):
 
     @property
     def _identifying_params(self) -> Mapping[str, Any]:
-        return {'kobold_api_url': self.ooba_api_url} #return the kobold_ai_api as an identifying parameter
+        return {'endpoint': self.endpoint} #return the kobold_ai_api as an identifying parameter

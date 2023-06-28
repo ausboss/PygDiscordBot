@@ -4,7 +4,7 @@ import requests
 from pydantic import Field
 
 class OobaApiLLM(LLM):
-    ooba_api_url: str = Field(...)
+    endpoint: str = Field(...)
 
     @property
     def _llm_type(self) -> str:
@@ -45,7 +45,7 @@ class OobaApiLLM(LLM):
         if stop is not None:
             data["stop_sequence"] = stop
 
-        response = requests.post(f'{self.ooba_api_url}/api/v1/generate', json=data)
+        response = requests.post(f'{self.endpoint}/api/v1/generate', json=data)
         response.raise_for_status()
 
         json_response = response.json()
@@ -66,4 +66,4 @@ class OobaApiLLM(LLM):
 
     @property
     def _identifying_params(self) -> Mapping[str, Any]:
-        return {'ooba_api_url': self.ooba_api_url} #return the ooba_api_url as an identifying parameter
+        return {'endpoint': self.endpoint} #return the kobold_ai_api as an identifying parameter

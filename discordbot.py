@@ -50,6 +50,7 @@ bot.owners = [int(x) for x in OWNERS.split(",")]
 # Setup both of the loggers
 
 
+
 class LoggingFormatter(logging.Formatter):
     # Colors
     black = "\x1b[30m"

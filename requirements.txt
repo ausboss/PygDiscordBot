@@ -9,3 +9,4 @@ openai
 aiosqlite
 duckduckgo-search
 wikipedia
+torch
