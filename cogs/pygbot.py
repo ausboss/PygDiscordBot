@@ -61,8 +61,12 @@ class Chatbot:
         self.char_name = BOTNAME
         self.memory = CustomBufferWindowMemory(k=10, ai_prefix=self.char_name)
         self.history = "[Beginning of Conversation]"
-        self.llm = KoboldApiLLM(endpoint=self.bot.endpoint)
-        # self.llm = OobaApiLLM(ooba_api_url=self.bot.endpoint)
+        
+        # check if self.bot.llm == "kobold" or "ooba" to set the llm
+        if self.bot.llm == "kobold":
+            self.llm = KoboldApiLLM(endpoint=self.bot.endpoint)
+        if self.bot.llm == "ooba":
+            self.llm = OobaApiLLM(ooba_api_url=self.bot.endpoint)
 
         self.template = MAINTEMPLATE
 

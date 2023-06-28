@@ -1,13 +1,13 @@
-[2023-06-28 03:31:01] [INFO    ] discord_bot: Endpoint: https://lenses-cleared-look-stationery.trycloudflare.com/api/v1/generate
-[2023-06-28 03:31:06] [INFO    ] discord_bot: Logged in as Tensor
-[2023-06-28 03:31:06] [INFO    ] discord_bot: discord.py API version: 2.3.1
-[2023-06-28 03:31:06] [INFO    ] discord_bot: Python version: 3.10.10
-[2023-06-28 03:31:06] [INFO    ] discord_bot: Running on: Windows 10 (nt)
-[2023-06-28 03:31:06] [INFO    ] discord_bot: -------------------
-[2023-06-28 03:31:06] [INFO    ] discord_bot: Tensor has connected to:
-[2023-06-28 03:31:06] [INFO    ] discord_bot: A.I. Nexus \ general
-[2023-06-28 03:31:06] [INFO    ] discord_bot: TensorAGI \ python-bot
-[2023-06-28 03:31:06] [INFO    ] discord_bot: FAM \ general
-[2023-06-28 03:31:06] [INFO    ] discord_bot: Koios Academy - AI Driven RP \ text
-[2023-06-28 03:31:06] [INFO    ] discord_bot: Agent Commands cog loaded.
-[2023-06-28 03:31:06] [INFO    ] discord_bot: Dev Commands cog loaded.
+[2023-06-28 03:41:32] [INFO    ] discord_bot: Endpoint: None/api/v1/generate
+[2023-06-28 03:41:37] [INFO    ] discord_bot: Logged in as Tensor
+[2023-06-28 03:41:37] [INFO    ] discord_bot: discord.py API version: 2.3.1
+[2023-06-28 03:41:37] [INFO    ] discord_bot: Python version: 3.10.10
+[2023-06-28 03:41:37] [INFO    ] discord_bot: Running on: Windows 10 (nt)
+[2023-06-28 03:41:37] [INFO    ] discord_bot: -------------------
+[2023-06-28 03:41:37] [INFO    ] discord_bot: Tensor has connected to:
+[2023-06-28 03:41:37] [INFO    ] discord_bot: A.I. Nexus \ general
+[2023-06-28 03:41:37] [INFO    ] discord_bot: TensorAGI \ python-bot
+[2023-06-28 03:41:37] [INFO    ] discord_bot: FAM \ general
+[2023-06-28 03:41:37] [INFO    ] discord_bot: Koios Academy - AI Driven RP \ text
+[2023-06-28 03:41:37] [INFO    ] discord_bot: Agent Commands cog loaded.
+[2023-06-28 03:41:37] [INFO    ] discord_bot: Dev Commands cog loaded.

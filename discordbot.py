@@ -25,25 +25,36 @@ if __name__ == '__main__':
 
     # Access the variables from the environment
     DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
-    ENDPOINT = os.getenv('ENDPOINT')
+    OOBAENDPOINT = os.getenv('OOBAENDPOINT')
+    KOBOLDENDPOINT = os.getenv('KOBOLDENDPOINT')
     CHANNEL_ID = os.getenv('CHANNEL_ID')
     OWNERS = os.getenv('OWNERS')
     OPENAI = os.getenv('OPENAI')
 
-    # # Check if any of the variables are missing
-    # if None in (DISCORD_BOT_TOKEN, ENDPOINT, CHANNEL_ID, OWNERS):
-    #     bot.logger.info('One or more required environment variables are missing.')
-    #     bot.logger.info('Make sure to set DISCORD_BOT_TOKEN, ENDPOINT, CHANNEL_ID, and OWNERS in the .env file.')
-    #     sys.exit(1)
 
 intents = discord.Intents.all()
 bot = Bot(command_prefix="/", intents=intents, help_command=None)
+# check OOBAENDPOINT and KOBOLDENDPOINT variables to see which is none to see whichto use
+if KOBOLDENDPOINT:
+    ENDPOINT = KOBOLDENDPOINT
+    bot.llm = "kobold"
+elif OOBAENDPOINT:
+    ENDPOINT = OOBAENDPOINT
+    bot.llm = "ooba"
+elif OOBAENDPOINT and KOBOLDENDPOINT:
+    bot.logger.info('Both OOBAENDPOINT and KOBOLDENDPOINT are set. Choosing KOBOLDENDPOINT')
+    ENDPOINT = KOBOLDENDPOINT
+    bot.llm = "kobold"
+else:
+    bot.logger.info('One or more required environment variables are missing.')
+    bot.logger.info('Make sure to set OOBAENDPOINT or KOBOLDENDPOINT in the .env file.')
+    sys.exit(1)
+
 bot.endpoint = ENDPOINT
 if len(bot.endpoint.split("/api")) > 0:
     bot.endpoint = bot.endpoint.split("/api")[0]
 bot.chatlog_dir = "chatlog_dir"
 bot.endpoint_connected = False
-bot.openai = OPENAI
 bot.channel_list = [int(x) for x in CHANNEL_ID.split(",")]
 bot.owners = [int(x) for x in OWNERS.split(",")]
 
@@ -251,23 +262,6 @@ async def on_command_error(context: Context, error) -> None:
         await context.send(embed=embed)
     else:
         raise error
-# # COG LOADER
-# async def load_cogs() -> None:
-#     for file in os.listdir(f"{os.path.realpath(os.path.dirname(__file__))}/cogs"):
-#         if file.endswith(".py"):
-#             extension = file[:-3]
-#             try:
-#                 await bot.load_extension(f"cogs.{extension}")
-#                 if extension == 'pygbot':
-#                     bot.endpoint_connected = True
-#             except commands.ExtensionError as e:
-#                 if extension == 'pygbot':
-#                     bot.endpoint_connected = False
-#                     logging.error(f"\n\nIssue with ENDPOINT. Please check your ENDPOINT in the .env file")
-#                 else:
-#                     exception = f"{type(e).__name__}: {e}"
-#                     bot.logger.info(f"Failed to load extension {extension}\n{exception}")
-
 
 # COG LOADER
 async def load_cogs() -> None:
