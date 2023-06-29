@@ -16,3 +16,4 @@ chardata.json
 chroma_db
 venv
 .pylintrc
+discord.log

@@ -10,3 +10,9 @@ aiosqlite
 duckduckgo-search
 wikipedia
 torch
+black==23.3.0
+isort==5.12.0
+numpy==1.25.0
+pandas==2.0.2
+plotly==5.15.0
+tabulate==0.9.0

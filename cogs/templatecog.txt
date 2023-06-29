@@ -1,0 +1,30 @@
+import discord
+from discord import app_commands
+from discord.ext import commands
+
+def embedder(msg):
+    embed = discord.Embed(
+            description=f"{msg}",
+            color=0x9C84EF
+        )
+    return embed
+
+
+class GenericCog(commands.Cog, name="generic_cog"):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(name="generic_command")
+    async def generic_function(self, ctx, *, text):
+
+        text = output
+
+        return output
+        
+
+    @app_commands.command(name="generic_command", description="process text")
+    async def generic_process(self, interaction: discord.Interaction, input_text: str):
+
+        text = input_text
+        output = self.generic_function(text)
+        await interaction.response.send_message(output, ephemeral=True)
