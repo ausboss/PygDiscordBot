@@ -17,7 +17,7 @@ from langchain.tools import DuckDuckGoSearchRun
 from langchain.utilities import PythonREPL
 
 
-os.environ["OPENAI_API_KEY"] = "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"
+os.environ["OPENAI_API_KEY"] = ""
 
 def embedder(msg):
     embed = discord.Embed(
