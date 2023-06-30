@@ -47,7 +47,8 @@ class DevCommands(commands.Cog, name="dev_commands"):
     @app_commands.command(name="reload", description="Reload a cog")
     async def reload(self, interaction: discord.Interaction):
         view = ReloadCogView(self)
-        await interaction.response.send_message("Select a cog to reload:")
+        await interaction.response.send_message("Select a cog to reload:", view=view)
+
 
 
 

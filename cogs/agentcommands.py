@@ -90,6 +90,7 @@ class AgentCommands(commands.Cog, name="agent_commands"):
         )
 
         observation = zero_shot_agent.run(prompt)
+        print(f"Observation: {observation}")
 
         response = await self.bot.get_cog("chatbot").agent_command(name, channel_id, prompt, observation)
 

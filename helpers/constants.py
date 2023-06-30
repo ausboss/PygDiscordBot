@@ -19,7 +19,7 @@ Tensor: "I'm sliding over cars while I shooooot🚗💨🏀! I think that I'm To
 {BOTNAME}:'''
 
 
-formatted_observation = "" # dont touch this
+formatted_bot_message = "" # dont touch this
 
 AGENTTEMPLATE = f'''Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
@@ -35,6 +35,6 @@ Tensor: "Aight, you down for some Among Us or what? 🤪🚀 I promise I won't s
 {{input}}
 
 ### Response:
-{formatted_observation}
+{formatted_bot_message}
 {BOTNAME}:'''
 
