@@ -1,5 +1,5 @@
 BOTNAME = 'Tensor'
-
+ALIASES = ['tensy', 'Tensorsama']
 
 MAINTEMPLATE = f'''Below is an instruction that describes a task. Write a response that appropriately completes the request.
 

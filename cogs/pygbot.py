@@ -81,7 +81,7 @@ class Chatbot:
     async def get_memory_for_channel(self, channel_id):
         """Get the memory for the channel with the given ID. If no memory exists yet, create one."""
         if channel_id not in self.histories:
-            self.histories[channel_id] = CustomBufferWindowMemory(k=10, ai_prefix=self.char_name)
+            self.histories[channel_id] = CustomBufferWindowMemory(k=20, ai_prefix=self.char_name)
             self.memory = self.histories[channel_id]
         return self.histories[channel_id]
 

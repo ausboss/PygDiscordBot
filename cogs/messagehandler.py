@@ -4,7 +4,7 @@ import re
 import discord
 from discord.ext import commands
 from discord import app_commands
-
+from helpers.constants import ALIASES
 SLEEPTIMER = 5
 
 def embedder(msg):
@@ -139,8 +139,8 @@ class ListenerCog(commands.Cog, name="listener"):
         # Checking if the message mentions the bot
         mentions_bot = self.bot.user in message.mentions
 
-        # Checking if the message contains the bot's name
-        contains_bot_name = self.bot.user.name.lower() in message.clean_content.lower()
+        # Checking if the message contains the bot's name or any of the aliases
+        contains_bot_name = self.bot.user.name.lower() in message.clean_content.lower() or any(alias.lower() in message.clean_content.lower() for alias in ALIASES)
 
         # The message is considered directed at the bot if `is_reply_to_bot`, `mentions_bot`, or `contains_bot_name` is true,
         # but `is_false_positive` is not true.
