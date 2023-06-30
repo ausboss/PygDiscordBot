@@ -1,4 +1,6 @@
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 import discord
 from discord.ext import commands, tasks
 from discord.ext.commands import Bot, Context

@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
+SLEEPTIMER = 5
 
 def embedder(msg):
     embed = discord.Embed(
@@ -108,7 +109,7 @@ class ListenerCog(commands.Cog, name="listener"):
         # Start the timer
         self.listen_only_mode[channel_id] = True
         print(f"Message Sleep Timer started for channel {channel_id}")
-        await asyncio.sleep(10)  # Wait for 10 seconds
+        await asyncio.sleep(SLEEPTIMER)  # Wait for 10 seconds
         print(f"Message Sleep Timer ended for channel {channel_id}")
 
         # Reset the listen-only mode

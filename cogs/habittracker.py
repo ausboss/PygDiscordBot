@@ -4,30 +4,9 @@ import pandas as pd
 from datetime import datetime
 from enum import Enum
 from dataclasses import dataclass
-from enum import Enum
-
-
-@dataclass
-class ToDo:
-    name: str
-    start_time: str
-    end_time: str
-
-    def __str__(self) -> str:
-        return f"{self.start_time} - {self.end_time} {self.name}"
-
-
-class DayOfWeek(Enum):
-    MONDAY = "Monday"
-    TUESDAY = "Tuesday"
-    WEDNESDAY = "Wednesday"
-    THURSDAY = "Thursday"
-    FRIDAY = "Friday"
-    SATURDAY = "Saturday"
-    SUNDAY = "Sunday"
-
-# from helpers.common import DayOfWeek, ToDo
-from helpers.scheduler import create_schedule, update_schedule
+import os
+from helpers.common import *
+# from helpers.scheduler import *
 
 
 class HabitTrackerCog(commands.Cog, name="HabitTracker"):

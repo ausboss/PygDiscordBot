@@ -15,9 +15,12 @@ from langchain.agents import initialize_agent
 from langchain.utilities import WikipediaAPIWrapper
 from langchain.tools import DuckDuckGoSearchRun
 from langchain.utilities import PythonREPL
+from dotenv import load_dotenv
 
+# Load .env file
+load_dotenv()
 
-os.environ["OPENAI_API_KEY"] = ""
+OPENAI = os.getenv('OPENAI')
 
 def embedder(msg):
     embed = discord.Embed(

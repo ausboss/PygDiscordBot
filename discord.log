@@ -1,19 +1,13 @@
-[2023-06-29 17:11:12] [INFO    ] discord_bot: Endpoint: None/api/v1/generate
-[2023-06-29 17:11:18] [INFO    ] discord_bot: Logged in as Tensor
-[2023-06-29 17:11:18] [INFO    ] discord_bot: discord.py API version: 2.3.1
-[2023-06-29 17:11:18] [INFO    ] discord_bot: Python version: 3.10.10
-[2023-06-29 17:11:18] [INFO    ] discord_bot: Running on: Windows 10 (nt)
-[2023-06-29 17:11:18] [INFO    ] discord_bot: -------------------
-[2023-06-29 17:11:18] [INFO    ] discord_bot: Tensor has connected to:
-[2023-06-29 17:11:18] [INFO    ] discord_bot: A.I. Nexus \ main
-[2023-06-29 17:11:18] [INFO    ] discord_bot: TensorAGI \ python-bot
-[2023-06-29 17:11:18] [INFO    ] discord_bot: FAM \ general
-[2023-06-29 17:11:18] [INFO    ] discord_bot: 
-
-
-
-ERROR: Unable to retrieve channel from .env 
-Please make sure you're using a valid channel ID, not a server ID.
-[2023-06-29 17:11:18] [INFO    ] discord_bot: Nous Research \ bots
-[2023-06-29 17:11:18] [INFO    ] discord_bot: Agent Commands cog loaded.
-[2023-06-29 17:11:18] [INFO    ] discord_bot: Dev Commands cog loaded.
+[2023-06-29 21:02:03] [INFO    ] discord_bot: Endpoint: None/api/v1/generate
+[2023-06-29 21:02:09] [INFO    ] discord_bot: Logged in as Tensor
+[2023-06-29 21:02:09] [INFO    ] discord_bot: discord.py API version: 2.3.1
+[2023-06-29 21:02:09] [INFO    ] discord_bot: Python version: 3.10.10
+[2023-06-29 21:02:09] [INFO    ] discord_bot: Running on: Windows 10 (nt)
+[2023-06-29 21:02:09] [INFO    ] discord_bot: -------------------
+[2023-06-29 21:02:09] [INFO    ] discord_bot: Tensor has connected to:
+[2023-06-29 21:02:09] [INFO    ] discord_bot: A.I. Nexus \ main
+[2023-06-29 21:02:09] [INFO    ] discord_bot: TensorAGI \ python-bot
+[2023-06-29 21:02:09] [INFO    ] discord_bot: FAM \ general
+[2023-06-29 21:02:09] [INFO    ] discord_bot: Nous Research \ bots
+[2023-06-29 21:02:09] [INFO    ] discord_bot: Agent Commands cog loaded.
+[2023-06-29 21:02:09] [INFO    ] discord_bot: Dev Commands cog loaded.

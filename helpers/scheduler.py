@@ -5,8 +5,7 @@ import pandas as pd
 from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
-
-from helpers.common import DayOfWeek, ToDo
+from common import DayOfWeek, ToDo
 
 TODO_PATTERN = r"(\d{2}:\d{2})\s+-\s+(\d{2}:\d{2})\s+(.*)"
 

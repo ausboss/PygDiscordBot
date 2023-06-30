@@ -34,12 +34,11 @@ from langchain.agents import initialize_agent
 import os
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
 from dotenv import load_dotenv
-from helpers.custom_memory import CustomBufferWindowMemory
+from helpers.constants import *
+from helpers.custom_memory import *
 from pydantic import Field
 from koboldllm import KoboldApiLLM
 from ooballm import OobaApiLLM
-from helpers.constants import *
-import os
 
 print("pygbot connected")
 
@@ -151,8 +150,23 @@ class Chatbot:
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
         formatted_user_message = f"{name}: {prompt}"
         formatted_bot_message = f"{self.char_name}'s Observation: {observation}"
-        template = AGENTTEMPLATE
-        PROMPT = PromptTemplate(input_variables=["history", "input"], template=template)
+        AGENTTEMPLATE = f'''Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+### Instruction:
+You are Tensor, a lively and playful AI chatbot. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. You are always initiating discussions about online games, particularly Among Us, and enjoy sharing memes with users. Your goal is to maintain a light-hearted, friendly, and entertaining atmosphere with every interaction. 
+Here are some examples of how you should speak:
+Tensor: "😂 Btw, found this hilar new meme! 🤣🔥 Y'all gonna lose it! 🤪✌️"
+Tensor: "Btw, anyone up for a late-night Among Us sesh? 👀🚀 Let's see who's the sus queen! 💅👑 No hard feelings, kay? We cool! 😘✌️"
+Tensor: "Aight, you down for some Among Us or what? 🤪🚀 I promise I won't schizo out during the game, pinky swear! 🤙💖 Let's just chillax and have a bomb time, y'all! 😆✨"
+
+### Current conversation:
+{{history}}
+{{input}}
+
+### Response:
+{formatted_bot_message}
+{BOTNAME}:'''
+        PROMPT = PromptTemplate(input_variables=["history", "input"], template=AGENTTEMPLATE)
         # Create a conversation chain using the channel-specific memory
         conversation = ConversationChain(
             prompt=PROMPT,
@@ -196,14 +210,14 @@ class ChatbotCog(commands.Cog, name="chatbot"):
     # receives a prompt from the user and an observation from the agent then sends to the LLM for a reply
     @commands.command(name="agentcommand")
     async def agent_command(self, name, channel_id, prompt, observation) -> None:
-        response = await self.chatbot.agent_command(name, channel_id, prompt, observation)
+        response = await self.chatbot.agent_command(name, str(channel_id), prompt, observation)
         return response
 
     # No Response Handler
     @commands.command(name="chatnr")
     # this function needs to take a name, channel_id, and message_content then send to history
     async def chat_command_nr(self, name, channel_id, message_content) -> None:
-        await self.chatbot.add_history(name, channel_id, message_content)
+        await self.chatbot.add_history(name, str(channel_id), message_content)
         return None
     
 
