@@ -28,10 +28,9 @@ class ReloadCogSelect(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        cog = self.values[0]
-        self.parent.bot.reload_extension(f"cogs.{cog}")
-        await interaction.response.send_message(f"Reloaded {cog} cog.", delete_after=5)
-
+            cog = self.values[0]
+            await self.parent.bot.reload_extension(f"cogs.{cog}")
+            await interaction.response.send_message(f"Reloaded {cog} cog.")
 
 class ReloadCogView(discord.ui.View):
     def __init__(self, parent):
@@ -48,7 +47,7 @@ class DevCommands(commands.Cog, name="dev_commands"):
     @app_commands.command(name="reload", description="Reload a cog")
     async def reload(self, interaction: discord.Interaction):
         view = ReloadCogView(self)
-        await interaction.response.send_message("Select a cog to reload:", view=view)
+        await interaction.response.send_message("Select a cog to reload:", view=view, ephemeral=True, delete_after=8)
 
 
 

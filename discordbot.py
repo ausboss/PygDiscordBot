@@ -19,47 +19,43 @@ else:
         config = json.load(file)
 
 
-if __name__ == '__main__':
-    # Load the variables from .env file
-    load_dotenv()
+# Load .env file
+load_dotenv()
 
-    # Access the variables from the environment
-    DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
-    OOBAENDPOINT = os.getenv('OOBAENDPOINT')
-    KOBOLDENDPOINT = os.getenv('KOBOLDENDPOINT')
-    CHANNEL_ID = os.getenv('CHANNEL_ID')
-    OWNERS = os.getenv('OWNERS')
-    OPENAI = os.getenv('OPENAI')
+# Initialize bot
+intents = discord.Intents.all()
+bot = Bot(command_prefix="/", intents=intents, help_command=None)
 
+# Get environment variables
+DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
+OOBAENDPOINT = os.getenv('OOBAENDPOINT')
+KOBOLDENDPOINT = os.getenv('KOBOLDENDPOINT')
+CHANNEL_ID = os.getenv('CHANNEL_ID')
+OWNERS = os.getenv('OWNERS')
+OPENAI = os.getenv('OPENAI')
 
 intents = discord.Intents.all()
 bot = Bot(command_prefix="/", intents=intents, help_command=None)
-# check OOBAENDPOINT and KOBOLDENDPOINT variables to see which is none to see whichto use
+# Check OOBAENDPOINT and KOBOLDENDPOINT variables to see which is not None to use
 if KOBOLDENDPOINT:
     ENDPOINT = KOBOLDENDPOINT
     bot.llm = "kobold"
 elif OOBAENDPOINT:
     ENDPOINT = OOBAENDPOINT
     bot.llm = "ooba"
-elif OOBAENDPOINT and KOBOLDENDPOINT:
-    bot.logger.info('Both OOBAENDPOINT and KOBOLDENDPOINT are set. Choosing KOBOLDENDPOINT')
-    ENDPOINT = KOBOLDENDPOINT
-    bot.llm = "kobold"
 else:
-    bot.logger.info('One or more required environment variables are missing.')
-    bot.logger.info('Make sure to set OOBAENDPOINT or KOBOLDENDPOINT in the .env file.')
+    print('One or more required environment variables are missing.')
+    print('Make sure to set OOBAENDPOINT or KOBOLDENDPOINT in the .env file.')
     sys.exit(1)
 
 bot.endpoint = ENDPOINT
+bot.openai = OPENAI
 if len(bot.endpoint.split("/api")) > 0:
     bot.endpoint = bot.endpoint.split("/api")[0]
 bot.chatlog_dir = "chatlog_dir"
 bot.endpoint_connected = False
 bot.channel_list = [int(x) for x in CHANNEL_ID.split(",")]
 bot.owners = [int(x) for x in OWNERS.split(",")]
-
-# Setup both of the loggers
-
 
 
 class LoggingFormatter(logging.Formatter):

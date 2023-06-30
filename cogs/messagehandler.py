@@ -83,24 +83,24 @@ class ListenerCog(commands.Cog, name="listener"):
         image_response = await self.bot.get_cog("image_caption").image_comment(message, message.clean_content)
 
         if mode == 'nr':
-            response = await self.bot.get_cog("chatbot").chat_command_nr(message, image_response)
+            response = await self.bot.get_cog("chatbot").chat_command_nr(message.author.display_name, message.channel.id, image_response)
         else:
             response = await self.bot.get_cog("chatbot").chat_command(message, image_response)
             if response:
                 async with message.channel.typing():
-                        await message.reply(response)
+                        await message.channel.send(response)
             
 
     async def handle_text_message(self, message, mode=''):
         
         if mode == 'nr':
-            response = await self.bot.get_cog("chatbot").chat_command_nr(message, message.clean_content)
+            response = await self.bot.get_cog("chatbot").chat_command_nr(message.author.display_name, message.channel.id, message.clean_content)
         else:
             response = await self.bot.get_cog("chatbot").chat_command(message, message.clean_content)
 
             if response:
                 async with message.channel.typing():
-                        await message.reply(response)
+                        await message.channel.send(response)
 
 
     async def set_listen_only_mode_timer(self, channel_id):

@@ -3,9 +3,10 @@ from langchain.llms.base import LLM, Optional, List, Mapping, Any
 import requests
 from pydantic import Field
 
+
 class KoboldApiLLM(LLM):
     endpoint: str = Field(...)
-
+    
     @property
     def _llm_type(self) -> str:
         return "custom"

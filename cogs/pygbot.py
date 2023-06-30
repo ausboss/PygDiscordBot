@@ -62,11 +62,12 @@ class Chatbot:
         self.memory = CustomBufferWindowMemory(k=10, ai_prefix=self.char_name)
         self.history = "[Beginning of Conversation]"
         
-        # check if self.bot.llm == "kobold" or "ooba" to set the llm
+        # Check if self.bot.llm == "kobold" or "ooba" to set the llm
         if self.bot.llm == "kobold":
             self.llm = KoboldApiLLM(endpoint=self.bot.endpoint)
-        if self.bot.llm == "ooba":
-            self.llm = OobaApiLLM(ooba_api_url=self.bot.endpoint)
+        elif self.bot.llm == "ooba":
+            # Provide a valid endpoint for the OobaApiLLM instance
+            self.llm = OobaApiLLM(endpoint=self.bot.endpoint)
 
         self.template = MAINTEMPLATE
 
@@ -133,7 +134,7 @@ class Chatbot:
     #this command receives a name, channel_id, and message_content then adds it to history
     async def add_history(self, name, channel_id, message_content) -> None:
         # get the memory for the channel
-        memory = await self.get_memory_for_channel(channel_id)
+        memory = await self.get_memory_for_channel(str(channel_id))
 
         formatted_message = f"{name}: {message_content}"
 
