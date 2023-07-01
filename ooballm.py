@@ -14,7 +14,7 @@ class OobaApiLLM(LLM):
     def _call(self, prompt: str, stop: Optional[List[str]]=None) -> str:
         data = {
             'prompt': prompt,
-            'max_new_tokens': 250,
+            'max_new_tokens': 1800,
             'preset': 'None',
             'do_sample': True,
             'temperature': 0.7,
