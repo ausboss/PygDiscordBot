@@ -18,3 +18,5 @@ venv
 .pylintrc
 discord.log
 discord.log
+database/messages.db
+discord.log

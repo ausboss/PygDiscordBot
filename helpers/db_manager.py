@@ -1,15 +1,44 @@
 import os
-
+import discord
 import aiosqlite
+import json
 
 DATABASE_PATH = f"{os.path.realpath(os.path.dirname(__file__))}/../database/database.db"
+MESSAGES_PATH = f"{os.path.realpath(os.path.dirname(__file__))}/../database/messages.db"
+
+
+async def setup_db():
+    # Create the messages table
+    await create_messages_table()
+
+
+async def create_messages_table():
+    async with aiosqlite.connect(MESSAGES_PATH) as db:
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS log_message(
+                id INTEGER PRIMARY KEY,
+                guild_id INTEGER,
+                channel_id INTEGER,
+                author_id INTEGER,
+                author_name TEXT,
+                author_display_name TEXT,
+                content TEXT,
+                created_at TEXT,
+                edited_at TEXT,
+                jump_url TEXT,
+                mentions TEXT,
+                -- add other columns here...
+                type INTEGER,
+                webhook_id INTEGER
+            )
+        ''')
+        await db.commit()
 
 
 async def get_blacklisted_users() -> list:
     """
     This function will return the list of all blacklisted users.
 
-    :param user_id: The ID of the user that should be checked.
     :return: True if the user is blacklisted, False if not.
     """
     async with aiosqlite.connect(DATABASE_PATH) as db:
@@ -18,6 +47,42 @@ async def get_blacklisted_users() -> list:
         ) as cursor:
             result = await cursor.fetchall()
             return result
+
+
+async def log_message(message: discord.Message):
+    async with aiosqlite.connect(MESSAGES_PATH) as db:
+        await db.execute('''
+                    INSERT INTO log_message(
+                        id,
+                        guild_id,
+                        channel_id,
+                        author_id,
+                        author_name,
+                        author_display_name,
+                        content,
+                        created_at,
+                        edited_at,
+                        jump_url,
+                        mentions,
+                        type,
+                        webhook_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
+                        message.id,
+                        message.guild.id if message.guild else None,
+                        message.channel.id,
+                        message.author.id,
+                        message.author.name,
+                        message.author.display_name,
+                        message.content,
+                        str(message.created_at),
+                        str(message.edited_at) if message.edited_at else None,
+                        message.jump_url,
+                        json.dumps([user.id for user in message.mentions]),
+                        message.type.value,  # Changed here
+                        message.webhook_id
+                    ))
+
+        await db.commit()
 
 
 async def is_blacklisted(user_id: int) -> bool:

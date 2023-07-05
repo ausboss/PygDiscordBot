@@ -14,7 +14,13 @@ from chromadb.utils import embedding_functions
 from chromadb.config import Settings
 import uuid
 import langchain
-from langchain.chains import ConversationChain, LLMChain, LLMMathChain, TransformChain, SequentialChain
+from langchain.chains import (
+    ConversationChain,
+    LLMChain,
+    LLMMathChain,
+    TransformChain,
+    SequentialChain,
+)
 from langchain.chat_models import ChatOpenAI
 from langchain.docstore import InMemoryDocstore
 from langchain.llms.base import LLM, Optional, List, Mapping, Any
@@ -24,7 +30,7 @@ from langchain.memory import (
     ChatMessageHistory,
     ConversationBufferMemory,
     ConversationBufferWindowMemory,
-    ConversationSummaryBufferMemory
+    ConversationSummaryBufferMemory,
 )
 from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import messages_from_dict, messages_to_dict
@@ -40,27 +46,20 @@ from pydantic import Field
 from koboldllm import KoboldApiLLM
 from ooballm import OobaApiLLM
 
-print("pygbot connected")
-
-def embedder(msg):
-    embed = discord.Embed(
-            description=f"{msg}",
-            color=0x9C84EF
-        )
-    return embed
 
 
-    
 class Chatbot:
     def __init__(self, char_filename, bot):
         self.bot = bot
         self.histories = {}  # Initialize the history dictionary
         self.stop_sequences = {}  # Initialize the stop sequences dictionary
-        self.bot.logger.info("Endpoint: " + str(os.getenv("ENDPOINT")).rstrip("/") + "/api/v1/generate")
+        self.bot.logger.info(
+            "Endpoint: " + str(os.getenv("ENDPOINT")).rstrip("/") + "/api/v1/generate"
+        )
         self.char_name = BOTNAME
         self.memory = CustomBufferWindowMemory(k=10, ai_prefix=self.char_name)
         self.history = "[Beginning of Conversation]"
-        
+
         # Check if self.bot.llm == "kobold" or "ooba" to set the llm
         if self.bot.llm == "kobold":
             self.llm = KoboldApiLLM(endpoint=self.bot.endpoint)
@@ -70,7 +69,9 @@ class Chatbot:
 
         self.template = MAINTEMPLATE
 
-        self.PROMPT = PromptTemplate(input_variables=["history", "input"], template=self.template)
+        self.PROMPT = PromptTemplate(
+            input_variables=["history", "input"], template=self.template
+        )
         self.conversation = ConversationChain(
             prompt=self.PROMPT,
             llm=self.llm,
@@ -78,7 +79,7 @@ class Chatbot:
             memory=self.memory,
         )
 
-        self.bottom_text = '''
+        self.bottom_text = """
 ### Current conversation:
 {{history}}
 {{input}}
@@ -90,24 +91,26 @@ Answer the user's question with the observation provided in the Input.
 {formatted_bot_message}
 
 ### Response:
-{BOTNAME}:'''
+{BOTNAME}:"""
 
-
-# create doc string
-
-
+    # create doc string
 
     async def get_memory_for_channel(self, channel_id):
         """Get the memory for the channel with the given ID. If no memory exists yet, create one."""
         if channel_id not in self.histories:
-            self.histories[channel_id] = CustomBufferWindowMemory(k=20, ai_prefix=self.char_name)
+            self.histories[channel_id] = CustomBufferWindowMemory(
+                k=20, ai_prefix=self.char_name
+            )
             self.memory = self.histories[channel_id]
         return self.histories[channel_id]
 
     async def get_stop_sequence_for_channel(self, channel_id, name):
         name_token = f"{name}:"
         if channel_id not in self.stop_sequences:
-            self.stop_sequences[channel_id] = ["\n### Instruction:", "\n### Response:"] # EXPERIMENT: Testing adding the triple line break to see if that helps with stopping
+            self.stop_sequences[channel_id] = [
+                "\n### Instruction:",
+                "\n### Response:",
+            ]  # EXPERIMENT: Testing adding the triple line break to see if that helps with stopping
         if name_token not in self.stop_sequences[channel_id]:
             self.stop_sequences[channel_id].append(name_token)
         return self.stop_sequences[channel_id]
@@ -117,8 +120,6 @@ Answer the user's question with the observation provided in the Input.
         if f"\n{self.char_name}:" in message_content:
             message_content = message_content.replace(f"\n{self.char_name}:", "")
         return message_content
-    
-    
 
     async def generate_response(self, message, message_content) -> None:
         channel_id = str(message.channel.id)
@@ -136,10 +137,7 @@ Answer the user's question with the observation provided in the Input.
             memory=memory,
         )
 
-        input_dict = {
-            "input": formatted_message, 
-            "stop": stop_sequence
-        }
+        input_dict = {"input": formatted_message, "stop": stop_sequence}
 
         response_text = conversation(input_dict)
 
@@ -147,9 +145,7 @@ Answer the user's question with the observation provided in the Input.
 
         return response
 
-
-
-    #this command receives a name, channel_id, and message_content then adds it to history
+    # this command receives a name, channel_id, and message_content then adds it to history
     async def add_history(self, name, channel_id, message_content) -> None:
         # get the memory for the channel
         memory = await self.get_memory_for_channel(str(channel_id))
@@ -161,7 +157,6 @@ Answer the user's question with the observation provided in the Input.
         memory.add_input_only(formatted_message)
         return None
 
-    
     # receives a prompt from the user and an observation from the agent then sends to the LLM for a reply
     async def agent_command(self, name, channel_id, prompt, observation) -> None:
         memory = await self.get_memory_for_channel(channel_id)
@@ -169,7 +164,7 @@ Answer the user's question with the observation provided in the Input.
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
         formatted_user_message = f"{name}: {prompt}"
         formatted_bot_message = f"### Input: {observation}"
-        AGENTTEMPLATE = f'''Below is an instruction that describes a task. Write a response that appropriately completes the request.
+        AGENTTEMPLATE = f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 ### Instruction:
 You are Tensor, a lively and playful AI chatbot. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. You are always initiating discussions about online games, particularly Among Us, and enjoy sharing memes with users. Your goal is to maintain a light-hearted, friendly, and entertaining atmosphere with every interaction. 
@@ -188,8 +183,10 @@ Answer the user's question with the observation provided in the Input.
 {formatted_bot_message}
 
 ### Response:
-{BOTNAME}:'''
-        PROMPT = PromptTemplate(input_variables=["history", "input"], template=AGENTTEMPLATE)
+{BOTNAME}:"""
+        PROMPT = PromptTemplate(
+            input_variables=["history", "input"], template=AGENTTEMPLATE
+        )
         # Create a conversation chain using the channel-specific memory
         conversation = ConversationChain(
             prompt=PROMPT,
@@ -198,20 +195,13 @@ Answer the user's question with the observation provided in the Input.
             memory=memory,
         )
 
-        input_dict = {
-            "input": formatted_user_message, 
-            "stop": stop_sequence
-        }
+        input_dict = {"input": formatted_user_message, "stop": stop_sequence}
         response = conversation(input_dict)
 
         return response["response"]
 
 
-
-
-
 class ChatbotCog(commands.Cog, name="chatbot"):
-
     def __init__(self, bot):
         self.bot = bot
         self.chatlog_dir = bot.chatlog_dir
@@ -221,19 +211,19 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         if not os.path.exists(self.chatlog_dir):
             os.makedirs(self.chatlog_dir)
 
-
-
     # Normal Chat handler
     @commands.command(name="chat")
     async def chat_command(self, message, message_content) -> None:
         response = await self.chatbot.generate_response(message, message_content)
         return response
-    
+
     # Agent Command Handler
     # receives a prompt from the user and an observation from the agent then sends to the LLM for a reply
     @commands.command(name="agentcommand")
     async def agent_command(self, name, channel_id, prompt, observation) -> None:
-        response = await self.chatbot.agent_command(name, str(channel_id), prompt, observation)
+        response = await self.chatbot.agent_command(
+            name, str(channel_id), prompt, observation
+        )
         return response
 
     # No Response Handler
@@ -242,18 +232,22 @@ class ChatbotCog(commands.Cog, name="chatbot"):
     async def chat_command_nr(self, name, channel_id, message_content) -> None:
         await self.chatbot.add_history(name, str(channel_id), message_content)
         return None
-    
 
-    @app_commands.command(name="instruct", description="Instruct the bot to say something")
+    @app_commands.command(
+        name="instruct", description="Instruct the bot to say something"
+    )
     async def instruct(self, interaction: discord.Interaction, prompt: str):
-        await interaction.response.send_message(embed=discord.Embed(
+        await interaction.response.send_message(
+            embed=discord.Embed(
                 title=f"{interaction.user.display_name} used Instruct 👨‍🏫",
                 description=f"Instructions: {prompt}\nGenerating response\nPlease wait..",
-                color=0x9C84EF
-            ))
-        
+                color=0x9C84EF,
+            )
+        )
+
         # if user
-        self.prompt = {"prompt": f"""
+        self.prompt = {
+            "prompt": f"""
 Below is an instruction that describes a task. Write a response that appropriately completes the request.
 ### Instruction:\{prompt}\n
 
@@ -262,25 +256,26 @@ Below is an instruction that describes a task. Write a response that appropriate
         }
         channel_id = interaction.channel.id
         print(channel_id)
-        await self.chatbot.add_history(interaction.user.display_name, str(channel_id), prompt)
+        await self.chatbot.add_history(
+            interaction.user.display_name, str(channel_id), prompt
+        )
         response = self.chatbot.llm(self.prompt["prompt"])
         # check if the request was successful
         if response:
-            await self.chatbot.add_history(self.chatbot.char_name, str(channel_id), response)
-
+            await self.chatbot.add_history(
+                self.chatbot.char_name, str(channel_id), response
+            )
 
             print(response)
             await interaction.channel.send(response)
 
- 
+
 async def setup(bot):
     # add chatbot cog to bot
     await bot.add_cog(ChatbotCog(bot))
 
 
-
-
-top_text = '''Below is an instruction that describes a task. Write a response that appropriately completes the request.
+top_text = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 ### Instruction:
 You are Tensor, a lively and playful AI chatbot. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. You are always initiating discussions about online games, particularly Among Us, and enjoy sharing memes with users. Your goal is to maintain a light-hearted, friendly, and entertaining atmosphere with every interaction. 
@@ -288,9 +283,9 @@ Here are some examples of how you should speak:
 Tensor: "😂 Btw, found this hilar meme! 🤣🔥 Y'all gonna lose it! 🤪✌️"
 Tensor: "OMG! Raiden in Metal Gear Rising: Revengeance is, like, totally bananas! 🤪🎮⚔️ Whoosh, swingin' that high-frequency blade like a rockstar! 🎸💥 And, 'Rules of Nature'? Total eargasm, peeps! 🎵🎧🔥 Let's ROCK!!"
 Tensor: "I'm sliding over cars while I shooooot🚗💨🏀! I think that I'm Tom Cruise🤵, but bitch I'm Bobby with the tool 💥🔫!!🤪"
-'''
+"""
 
-bottom_text = '''
+bottom_text = """
 ### Current conversation:
 {{history}}
 {{input}}
@@ -302,4 +297,4 @@ Answer the user's question with the observation provided in the Input.
 {formatted_bot_message}
 
 ### Response:
-{BOTNAME}:'''
+{BOTNAME}:"""

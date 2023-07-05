@@ -5,7 +5,11 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from helpers.constants import ALIASES
+
+from helpers.db_manager import log_message
+
 SLEEPTIMER = 5
+
 
 def embedder(msg):
     embed = discord.Embed(
@@ -14,13 +18,16 @@ def embedder(msg):
         )
     return embed
 
+
 class ListenerCog(commands.Cog, name="listener"):
+
     def __init__(self, bot):
         self.bot = bot
-        #self.listen_only_mode needs to be a dictionary with the guild id as the key and the value as the boolean
+        # self.listen_only_mode needs to be a dictionary with the guild id as the key and the value as the boolean
         self.listen_only_mode = {int(guild_id): False for guild_id in self.bot.channel_list}
 
     class ListenOnlyModeSelect(discord.ui.Select):
+
         def __init__(self, parent):
             self.parent = parent
             options = [
@@ -51,6 +58,7 @@ class ListenerCog(commands.Cog, name="listener"):
                 await interaction.response.send_message(embed=embedder(f".Listen-only mode is not enabled in this channel"), delete_after=5)
 
     class ListenOnlyModeView(discord.ui.View):
+
         def __init__(self, parent):
             super().__init__()
             self.add_item(ListenerCog.ListenOnlyModeSelect(parent))
@@ -60,8 +68,6 @@ class ListenerCog(commands.Cog, name="listener"):
     async def listen(self, interaction: discord.Interaction):
         view = self.ListenOnlyModeView(self)
         await interaction.response.send_message("Toggle listen-only mode:", view=view)
-
-
 
     async def has_image_attachment(self, message_content):
         url_pattern = re.compile(r'http[s]?://[^\s/$.?#].[^\s]*\.(jpg|jpeg|png|gif)', re.IGNORECASE)
@@ -73,36 +79,36 @@ class ListenerCog(commands.Cog, name="listener"):
         if url_pattern.search(message_content.content):
             return True
         # Check if the message content contains a Tenor GIF URL
-
         elif tenor_pattern.search(message_content.content):
             return True
         else:
             return False
     
     async def handle_image_message(self, message, mode=''):
-    
+        
+        await log_message(message)
         image_response = await self.bot.get_cog("image_caption").image_comment(message, message.clean_content)
 
         if mode == 'nr':
-            response = await self.bot.get_cog("chatbot").chat_command_nr(message.author.display_name, message.channel.id, image_response)
+            await self.bot.get_cog("chatbot").chat_command_nr(message.author.display_name, message.channel.id, image_response)
         else:
             response = await self.bot.get_cog("chatbot").chat_command(message, image_response)
             if response:
                 async with message.channel.typing():
-                        await message.channel.send(response)
-            
+                    response_message = await message.channel.send(response)
+                    await log_message(response_message)
 
     async def handle_text_message(self, message, mode=''):
-        
+
+        await log_message(message)
         if mode == 'nr':
-            response = await self.bot.get_cog("chatbot").chat_command_nr(message.author.display_name, message.channel.id, message.clean_content)
+            await self.bot.get_cog("chatbot").chat_command_nr(message.author.display_name, message.channel.id, message.clean_content)
         else:
             response = await self.bot.get_cog("chatbot").chat_command(message, message.clean_content)
-
             if response:
                 async with message.channel.typing():
-                        await message.channel.send(response)
-
+                    response_message = await message.channel.send(response)
+                    await log_message(response_message)
 
     async def set_listen_only_mode_timer(self, channel_id):
         
@@ -114,8 +120,6 @@ class ListenerCog(commands.Cog, name="listener"):
 
         # Reset the listen-only mode
         self.listen_only_mode[channel_id] = False
-
-
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -131,7 +135,6 @@ class ListenerCog(commands.Cog, name="listener"):
         # We define is_false_positive first.
         is_false_positive = (message.reference and message.reference.resolved.author != self.bot.user and
                              self.bot.user.name.lower() in message.clean_content.lower())
-        
 
         # Checking if the message is a reply to the bot
         is_reply_to_bot = message.reference and message.reference.resolved.author == self.bot.user

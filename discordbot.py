@@ -1,18 +1,22 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-import discord
-from discord.ext import commands, tasks
-from discord.ext.commands import Bot, Context
 import platform
 import random
 import asyncio
 import json
-import sys
 import logging
+import traceback
+
+import discord
+from discord.ext import commands, tasks
+from discord.ext.commands import Bot, Context
 from dotenv import load_dotenv
 import aiosqlite
+from helpers import db_manager
+
+# assuming exceptions is a custom module, otherwise remove this
 import exceptions
+
 
 if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
@@ -29,16 +33,16 @@ intents = discord.Intents.all()
 bot = Bot(command_prefix="/", intents=intents, help_command=None)
 
 # Get environment variables
-DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
-OOBAENDPOINT = os.getenv('OOBAENDPOINT')
-KOBOLDENDPOINT = os.getenv('KOBOLDENDPOINT')
-CHANNEL_ID = os.getenv('CHANNEL_ID')
-OWNERS = os.getenv('OWNERS')
-OPENAI = os.getenv('OPENAI')
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+OOBAENDPOINT = os.getenv("OOBAENDPOINT")
+KOBOLDENDPOINT = os.getenv("KOBOLDENDPOINT")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
+OWNERS = os.getenv("OWNERS")
+OPENAI = os.getenv("OPENAI")
 
 intents = discord.Intents.all()
 bot = Bot(command_prefix="/", intents=intents, help_command=None)
-# Check OOBAENDPOINT and KOBOLDENDPOINT variables to see which is not None to use
+# Check OOBAENDPOINT and KOBOLDENDPOINT variables to see which is in use
 if KOBOLDENDPOINT:
     ENDPOINT = KOBOLDENDPOINT
     bot.llm = "kobold"
@@ -46,8 +50,8 @@ elif OOBAENDPOINT:
     ENDPOINT = OOBAENDPOINT
     bot.llm = "ooba"
 else:
-    print('One or more required environment variables are missing.')
-    print('Make sure to set OOBAENDPOINT or KOBOLDENDPOINT in the .env file.')
+    print("One or more required environment variables are missing.")
+    print("Make sure to set OOBAENDPOINT or KOBOLDENDPOINT in the .env file.")
     sys.exit(1)
 
 bot.endpoint = ENDPOINT
@@ -120,11 +124,15 @@ async def init_db():
             await db.executescript(file.read())
         await db.commit()
 
+
 bot.config = config
+
 
 # on ready event that will update the character name and picture if you chose yes
 @bot.event
 async def on_ready():
+    await db_manager.setup_db()
+    bot.logger.info(f"Setting up database...")
     bot.logger.info(f"Logged in as {bot.user.name}")
     bot.logger.info(f"discord.py API version: {discord.__version__}")
     bot.logger.info(f"Python version: {platform.python_version()}")
@@ -149,7 +157,9 @@ async def on_ready():
                 bot.logger.info(f"Channel with ID {items} is not a text channel")
         except AttributeError:
             bot.logger.info(
-                "\n\n\n\nERROR: Unable to retrieve channel from .env \nPlease make sure you're using a valid channel ID, not a server ID.")
+                "\n\n\n\nERROR: Unable to retrieve channel from .env \nPlease make sure you're using a valid channel ID, not a server ID."
+            )
+
 
 @tasks.loop(minutes=6.0)
 async def status_task() -> None:
@@ -157,10 +167,9 @@ async def status_task() -> None:
     Setup the game status task of the bot.
     """
     statuses = [
-    "with Langchain🦜🔗",
+        "with Langchain🦜🔗",
     ]
     await bot.change_presence(activity=discord.Game(random.choice(statuses)))
-
 
 
 @bot.event
@@ -186,9 +195,11 @@ async def on_command_completion(context: Context) -> None:
 @bot.event
 async def on_command_error(context: Context, error) -> None:
     """
-    The code in this event is executed every time a normal valid command catches an error.
+    The code in this event is executed every time a
+    normal valid command catches an error.
 
-    :param context: The context of the normal command that failed executing.
+    :param context: The context of the normal command
+    that failed executing.
     :param error: The error that has been faced.
     """
     if isinstance(error, commands.CommandOnCooldown):
@@ -253,7 +264,6 @@ async def on_command_error(context: Context, error) -> None:
     elif isinstance(error, commands.MissingRequiredArgument):
         embed = discord.Embed(
             title="Error!",
-            # We need to capitalize because the command arguments have no capital letter in the code.
             description=str(error).capitalize(),
             color=0xE02B2B,
         )
@@ -261,14 +271,21 @@ async def on_command_error(context: Context, error) -> None:
     else:
         raise error
 
+
 # COG LOADER
 async def load_cogs() -> None:
     for file in os.listdir(f"{os.path.realpath(os.path.dirname(__file__))}/cogs"):
         if file.endswith(".py"):
             extension = file[:-3]
-            await bot.load_extension(f"cogs.{extension}")
-
-
+            try:
+                await bot.load_extension(f"cogs.{extension}")
+            except Exception as e:
+                # log the error and continue with the next file
+                error_info = (
+                    f"Failed to load extension {extension}. {type(e).__name__}: {e}"
+                )
+                print(error_info)
+                logging.error(f"Traceback: {traceback.format_exc()}")
 
 
 asyncio.run(load_cogs())
