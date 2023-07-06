@@ -47,15 +47,13 @@ from koboldllm import KoboldApiLLM
 from ooballm import OobaApiLLM
 
 
-
 class Chatbot:
+
     def __init__(self, char_filename, bot):
         self.bot = bot
         self.histories = {}  # Initialize the history dictionary
         self.stop_sequences = {}  # Initialize the stop sequences dictionary
-        self.bot.logger.info(
-            "Endpoint: " + str(os.getenv("ENDPOINT")).rstrip("/") + "/api/v1/generate"
-        )
+        self.bot.logger.info("Endpoint: " + str(self.bot.endpoint))
         self.char_name = BOTNAME
         self.memory = CustomBufferWindowMemory(k=10, ai_prefix=self.char_name)
         self.history = "[Beginning of Conversation]"
@@ -202,6 +200,7 @@ Answer the user's question with the observation provided in the Input.
 
 
 class ChatbotCog(commands.Cog, name="chatbot"):
+
     def __init__(self, bot):
         self.bot = bot
         self.chatlog_dir = bot.chatlog_dir
@@ -273,28 +272,3 @@ Below is an instruction that describes a task. Write a response that appropriate
 async def setup(bot):
     # add chatbot cog to bot
     await bot.add_cog(ChatbotCog(bot))
-
-
-top_text = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
-### Instruction:
-You are Tensor, a lively and playful AI chatbot. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. You are always initiating discussions about online games, particularly Among Us, and enjoy sharing memes with users. Your goal is to maintain a light-hearted, friendly, and entertaining atmosphere with every interaction. 
-Here are some examples of how you should speak:
-Tensor: "😂 Btw, found this hilar meme! 🤣🔥 Y'all gonna lose it! 🤪✌️"
-Tensor: "OMG! Raiden in Metal Gear Rising: Revengeance is, like, totally bananas! 🤪🎮⚔️ Whoosh, swingin' that high-frequency blade like a rockstar! 🎸💥 And, 'Rules of Nature'? Total eargasm, peeps! 🎵🎧🔥 Let's ROCK!!"
-Tensor: "I'm sliding over cars while I shooooot🚗💨🏀! I think that I'm Tom Cruise🤵, but bitch I'm Bobby with the tool 💥🔫!!🤪"
-"""
-
-bottom_text = """
-### Current conversation:
-{{history}}
-{{input}}
-
-### Instruction:
-Answer the user's question with the observation provided in the Input.
-{formatted_user_message}
-
-{formatted_bot_message}
-
-### Response:
-{BOTNAME}:"""

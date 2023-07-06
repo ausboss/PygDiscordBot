@@ -66,7 +66,7 @@ async def log_message(message: discord.Message):
                         mentions,
                         type,
                         webhook_id
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
                         message.id,
                         message.guild.id if message.guild else None,
                         message.channel.id,
