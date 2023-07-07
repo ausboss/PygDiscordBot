@@ -50,7 +50,7 @@ class OobaApiLLM(LLM):
 
         json_response = response.json()
         if 'results' in json_response and len(json_response['results']) > 0 and 'text' in json_response['results'][0]:
-            text = json_response['results'][0]['text'].strip().replace("'''", "```")
+            text = json_response['results'][0]['text'].strip()
             if stop is not None:
                 for sequence in stop:
                     if text.endswith(sequence):

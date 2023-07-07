@@ -9,6 +9,7 @@ from transformers import BlipForConditionalGeneration, BlipProcessor
 
 
 class ImageCaptionCog(commands.Cog, name="image_caption"):
+
     def __init__(self, bot):
         self.bot = bot
         self.processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")

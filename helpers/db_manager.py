@@ -16,7 +16,7 @@ async def create_messages_table():
     async with aiosqlite.connect(MESSAGES_PATH) as db:
         await db.execute('''
             CREATE TABLE IF NOT EXISTS log_message(
-                id INTEGER PRIMARY KEY,
+                id INTEGER,
                 guild_id INTEGER,
                 channel_id INTEGER,
                 author_id INTEGER,
@@ -27,7 +27,6 @@ async def create_messages_table():
                 edited_at TEXT,
                 jump_url TEXT,
                 mentions TEXT,
-                -- add other columns here...
                 type INTEGER,
                 webhook_id INTEGER
             )

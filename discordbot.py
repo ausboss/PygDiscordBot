@@ -17,13 +17,11 @@ from helpers import db_manager
 # assuming exceptions is a custom module, otherwise remove this
 import exceptions
 
-
 if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
 else:
     with open(f"{os.path.realpath(os.path.dirname(__file__))}/config.json") as file:
         config = json.load(file)
-
 
 # Load .env file
 load_dotenv()
@@ -42,16 +40,19 @@ OPENAI = os.getenv("OPENAI")
 
 intents = discord.Intents.all()
 bot = Bot(command_prefix="/", intents=intents, help_command=None)
-# Check OOBAENDPOINT and KOBOLDENDPOINT variables to see which is in use
+# Check KOBOLDENDPOINT, OOBAENDPOINT, and OPENAI variables to see which is in use
 if KOBOLDENDPOINT:
     ENDPOINT = KOBOLDENDPOINT
     bot.llm = "kobold"
 elif OOBAENDPOINT:
     ENDPOINT = OOBAENDPOINT
     bot.llm = "ooba"
+elif OPENAI:
+    ENDPOINT = OPENAI
+    bot.llm = "openai"
 else:
     print("One or more required environment variables are missing.")
-    print("Make sure to set OOBAENDPOINT or KOBOLDENDPOINT in the .env file.")
+    print("Make sure to set KOBOLDENDPOINT, OOBAENDPOINT, or OPENAI in the .env file.")
     sys.exit(1)
 
 bot.endpoint = ENDPOINT
@@ -248,16 +249,16 @@ async def on_command_error(context: Context, error) -> None:
     elif isinstance(error, commands.MissingPermissions):
         embed = discord.Embed(
             description="You are missing the permission(s) `"
-            + ", ".join(error.missing_permissions)
-            + "` to execute this command!",
+            +", ".join(error.missing_permissions)
+            +"` to execute this command!",
             color=0xE02B2B,
         )
         await context.send(embed=embed)
     elif isinstance(error, commands.BotMissingPermissions):
         embed = discord.Embed(
             description="I am missing the permission(s) `"
-            + ", ".join(error.missing_permissions)
-            + "` to fully perform this command!",
+            +", ".join(error.missing_permissions)
+            +"` to fully perform this command!",
             color=0xE02B2B,
         )
         await context.send(embed=embed)

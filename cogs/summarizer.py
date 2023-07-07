@@ -35,7 +35,6 @@ DEFAULT_SUMMARIZE_PARAMS = {
 }
 
 
-
 def embedder(msg):
     embed = discord.Embed(
             description=f"{msg}",
@@ -45,6 +44,7 @@ def embedder(msg):
 
 
 class TextSummarizerCog(commands.Cog, name="text_summarizer"):
+
     def __init__(self, bot):
         self.bot = bot
         self.device = device
@@ -64,7 +64,6 @@ class TextSummarizerCog(commands.Cog, name="text_summarizer"):
             return await self.summarize_chunks(
                 text[: (len(text) // 2)], new_params
             ) + self.summarize_chunks(text[(len(text) // 2):], new_params)
-
 
     async def summarize(self, text: str, params: dict) -> str:
         # Tokenize input
@@ -91,11 +90,9 @@ class TextSummarizerCog(commands.Cog, name="text_summarizer"):
         summary = await self.normalize_string(summary)
         return summary
 
-
     async def normalize_string(self, input: str) -> str:
         output = " ".join(unicodedata.normalize("NFKC", input).strip().split())
         return output
-
 
     async def local_summarize(self, text, params=None):
         if params is None:
@@ -106,19 +103,21 @@ class TextSummarizerCog(commands.Cog, name="text_summarizer"):
         print("Summary output:", summary, sep="\n")
         return summary
 
-
     # this command will summarize text and send it back to the user. 
     @app_commands.command(name="summarizetext", description="summarize text")
     async def summarize_text(self, interaction: discord.Interaction, input_text: str):
-        await interaction.response.defer()
-        await interaction.delete_original_response()
-
+        truncated_text = input_text[:30] + "..." if len(input_text) > 30 else input_text
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title=f"{interaction.user.display_name} used Summarize 📃",
+                description=f"Instructions: {truncated_text}\nGenerating response\nPlease wait..",
+                color=0x9C84EF,
+            )
+        )
 
         summary = await self.summarize(input_text, DEFAULT_SUMMARIZE_PARAMS.copy())
 
         await interaction.channel.send(summary)
-        
-
 
 
 async def setup(bot):

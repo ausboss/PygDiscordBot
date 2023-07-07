@@ -47,10 +47,13 @@ from koboldllm import KoboldApiLLM
 from ooballm import OobaApiLLM
 
 
+
+
 class Chatbot:
 
     def __init__(self, char_filename, bot):
         self.bot = bot
+        os.environ["OPENAI_API_KEY"] = self.bot.openai
         self.histories = {}  # Initialize the history dictionary
         self.stop_sequences = {}  # Initialize the stop sequences dictionary
         self.bot.logger.info("Endpoint: " + str(self.bot.endpoint))
@@ -64,6 +67,10 @@ class Chatbot:
         elif self.bot.llm == "ooba":
             # Provide a valid endpoint for the OobaApiLLM instance
             self.llm = OobaApiLLM(endpoint=self.bot.endpoint)
+        elif self.bot.llm == "openai":
+            self.llm = ChatOpenAI(
+                model_name="gpt-4", temperature=0.7
+            )
 
         self.template = MAINTEMPLATE
 
@@ -76,20 +83,6 @@ class Chatbot:
             verbose=True,
             memory=self.memory,
         )
-
-        self.bottom_text = """
-### Current conversation:
-{{history}}
-{{input}}
-
-### Instruction:
-Answer the user's question with the observation provided in the Input.
-{formatted_user_message}
-
-{formatted_bot_message}
-
-### Response:
-{BOTNAME}:"""
 
     # create doc string
 
@@ -259,14 +252,11 @@ Below is an instruction that describes a task. Write a response that appropriate
             interaction.user.display_name, str(channel_id), prompt
         )
         response = self.chatbot.llm(self.prompt["prompt"])
+        await interaction.channel.send(response)
         # check if the request was successful
-        if response:
-            await self.chatbot.add_history(
-                self.chatbot.char_name, str(channel_id), response
-            )
-
-            print(response)
-            await interaction.channel.send(response)
+        await self.chatbot.add_history(
+            self.chatbot.char_name, str(channel_id), response
+        )
 
 
 async def setup(bot):
