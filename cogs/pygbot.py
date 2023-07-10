@@ -71,6 +71,7 @@ class Chatbot:
             self.llm = ChatOpenAI(
                 model_name="gpt-4", temperature=0.7
             )
+        self.bot.llm = self.llm
 
         self.template = MAINTEMPLATE
 
