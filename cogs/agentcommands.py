@@ -30,8 +30,16 @@ class AgentCommands(commands.Cog, name="agent_commands"):
     
     @app_commands.command(name="searchweb", description="Query Web")
     async def search_web(self, interaction: discord.Interaction, prompt: str):
+        tool = "Web Search"
+        results = self.search(prompt)
 
-        response = self.search(prompt)
+        response = await self.bot.get_cog("chatbot").agent_command(
+            interaction.user.display_name, 
+            interaction.channel.id, 
+            prompt,
+            tool,
+            results
+            )
 
         await interaction.channel.send(response)
 
