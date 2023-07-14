@@ -95,8 +95,26 @@ class ListenerCog(commands.Cog, name="listener"):
             response = await self.bot.get_cog("chatbot").chat_command(message, image_response)
             if response:
                 async with message.channel.typing():
-                    response_message = await message.channel.send(response)
-                    await log_message(response_message)
+                    retry_count = 0
+                    max_retries = 3
+                    while "<nooutput>" in response and retry_count < max_retries:
+                        new_response = self.chatbot.llm(self.prompt["prompt"])
+                        retry_count += 1
+                        print("<nooutput> in response, trying again.")
+                        if new_response:
+                            response = new_response
+                        else:
+                            break
+
+                    # If the response is more than 2000 characters, split it
+                    chunks = [response[i:i+1998] for i in range(0, len(response), 1998)]
+                    for chunk in chunks:
+                        print(chunk)
+                        response_obj = await message.channel.send(chunk)
+                        await log_message(response_obj)
+
+
+                        
 
     async def handle_text_message(self, message, mode=''):
 
@@ -105,10 +123,28 @@ class ListenerCog(commands.Cog, name="listener"):
             await self.bot.get_cog("chatbot").chat_command_nr(message.author.display_name, message.channel.id, message.clean_content)
         else:
             response = await self.bot.get_cog("chatbot").chat_command(message, message.clean_content)
-            if response:
-                async with message.channel.typing():
-                    response_message = await message.channel.send(response)
-                    await log_message(response_message)
+            async with message.channel.typing():
+                retry_count = 0
+                max_retries = 3
+                while "<nooutput>" in response and retry_count < max_retries:
+                    new_response = self.chatbot.llm(self.prompt["prompt"])
+                    retry_count += 1
+                    print("<nooutput> in response, trying again.")
+                    if new_response:
+                        response = new_response
+                    else:
+                        break
+
+                # If the response is more than 2000 characters, split it
+                chunks = [response[i:i+1998] for i in range(0, len(response), 1998)]
+                for chunk in chunks:
+                    print(chunk)
+                    response_obj = await message.channel.send(chunk)
+                    await log_message(response_obj)
+
+
+
+
 
     async def set_listen_only_mode_timer(self, channel_id):
         

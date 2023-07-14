@@ -45,6 +45,7 @@ from helpers.custom_memory import *
 from pydantic import Field
 from koboldllm import KoboldApiLLM
 from ooballm import OobaApiLLM
+from langchain.llms import TextGen
 
 
 
@@ -66,7 +67,7 @@ class Chatbot:
             self.llm = KoboldApiLLM(endpoint=self.bot.endpoint)
         elif self.bot.llm == "ooba":
             # Provide a valid endpoint for the OobaApiLLM instance
-            self.llm = OobaApiLLM(endpoint=self.bot.endpoint)
+            self.llm = TextGen(model_url=self.bot.endpoint, min_length=10, max_new_tokens=1500)
         elif self.bot.llm == "openai":
             self.llm = ChatOpenAI(
                 model_name="gpt-4", temperature=0.7
@@ -150,26 +151,24 @@ class Chatbot:
         return None
 
     # receives a prompt from the user and an observation from the agent then sends to the LLM for a reply
-    async def agent_command(self, name, channel_id, prompt, observation) -> None:
+    async def agent_command(self, name, channel_id, prompt, tool, observation) -> None:
         memory = await self.get_memory_for_channel(channel_id)
         await self.get_stop_sequence_for_channel(channel_id, name)
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
-        formatted_user_message = f"{name}: {prompt}"
-        formatted_bot_message = f"### Input: {observation}"
-        AGENTTEMPLATE = f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
+        formatted_user_message = f"{name}: {prompt}\### Instruction: use the provided Input to find the answer to {name}'s prompt: {prompt}"
+        formatted_bot_message = f"### Input:\n{observation}"
+        AGENTTEMPLATE = f"""Below is an instruction that describes a task. Write a response that appropriately completes the request. Think step by step.
 
 ### Instruction:
 You are Tensor, a lively and playful AI chatbot. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. You are always initiating discussions about online games, particularly Among Us, and enjoy sharing memes with users. Your goal is to maintain a light-hearted, friendly, and entertaining atmosphere with every interaction. 
 Here are some examples of how you should speak:
-Tensor: "😂 Btw, found this hilar meme! 🤣🔥 Y'all gonna lose it! 🤪✌️"
-Tensor: "OMG! Raiden in Metal Gear Rising: Revengeance is, like, totally bananas! 🤪🎮⚔️ Whoosh, swingin' that high-frequency blade like a rockstar! 🎸💥 And, 'Rules of Nature'? Total eargasm, peeps! 🎵🎧🔥 Let's ROCK!!"
-Tensor: "I'm sliding over cars while I shooooot🚗💨🏀! I think that I'm Tom Cruise🤵, but bitch I'm Bobby with the tool 💥🔫!!🤪"
 
 ### Current conversation:
 {{history}}
 {{input}}
 ### Instruction:
-Answer the user's question with the observation provided in the Input.
+Find the answer to the 
+
 {formatted_user_message}
 
 {formatted_bot_message}
@@ -213,11 +212,12 @@ class ChatbotCog(commands.Cog, name="chatbot"):
     # Agent Command Handler
     # receives a prompt from the user and an observation from the agent then sends to the LLM for a reply
     @commands.command(name="agentcommand")
-    async def agent_command(self, name, channel_id, prompt, observation) -> None:
+    async def agent_command(self, name, channel_id, prompt, tool, observation) -> None:
         response = await self.chatbot.agent_command(
-            name, str(channel_id), prompt, observation
+            name, str(channel_id), prompt, tool, observation
         )
         return response
+
 
     # No Response Handler
     @commands.command(name="chatnr")
@@ -252,8 +252,24 @@ Below is an instruction that describes a task. Write a response that appropriate
         await self.chatbot.add_history(
             interaction.user.display_name, str(channel_id), prompt
         )
-        response = self.chatbot.llm(self.prompt["prompt"])
-        await interaction.channel.send(response)
+        
+
+        async with interaction.channel.typing():
+            response = self.chatbot.llm(self.prompt["prompt"])
+            retry_count = 0
+            max_retries = 3
+            while "<nooutput>" in response and retry_count < max_retries:
+                response = self.chatbot.llm(self.prompt["prompt"])
+                retry_count += 1
+                print("<nooutput> in response, trying again.")
+
+        # If the response is more than 2000 characters, split it
+        chunks = [response[i:i+1998] for i in range(0, len(response), 1998)]
+        for chunk in chunks:
+            print(chunk)
+            await interaction.channel.send(response)
+
+
         # check if the request was successful
         await self.chatbot.add_history(
             self.chatbot.char_name, str(channel_id), response
