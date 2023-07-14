@@ -13,6 +13,7 @@ import chromadb
 from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
 from langchain.llms import KoboldApiLLM
+from langchain.llms import TextGen
 from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import messages_from_dict, messages_to_dict
 
@@ -24,14 +25,11 @@ from helpers.custom_memory import *
 from pydantic import Field
 
 from ooballm import OobaApiLLM
-from langchain.llms import TextGen
-
-
 
 
 class Chatbot:
 
-    def __init__(self, char_filename, bot):
+    def __init__(self, bot):
         self.bot = bot
         os.environ["OPENAI_API_KEY"] = self.bot.openai
         self.histories = {}  # Initialize the history dictionary
@@ -40,21 +38,8 @@ class Chatbot:
         self.char_name = BOTNAME
         self.memory = CustomBufferWindowMemory(k=10, ai_prefix=self.char_name)
         self.history = "[Beginning of Conversation]"
-
-        # Check if self.bot.llm == "kobold" or "ooba" to set the llm
-        if self.bot.llm == "kobold":
-            self.llm = KoboldApiLLM(endpoint=self.bot.endpoint)
-        elif self.bot.llm == "ooba":
-            # Provide a valid endpoint for the OobaApiLLM instance
-            self.llm = TextGen(model_url=self.bot.endpoint, min_length=10, max_new_tokens=1500)
-        elif self.bot.llm == "openai":
-            self.llm = ChatOpenAI(
-                model_name="gpt-4", temperature=0.7
-            )
-        self.bot.llm = self.llm
-
+        self.llm = self.bot.llm
         self.template = MAINTEMPLATE
-
         self.PROMPT = PromptTemplate(
             input_variables=["history", "input"], template=self.template
         )
@@ -64,8 +49,6 @@ class Chatbot:
             verbose=True,
             memory=self.memory,
         )
-
-    # create doc string
 
     async def get_memory_for_channel(self, channel_id):
         """Get the memory for the channel with the given ID. If no memory exists yet, create one."""
@@ -77,11 +60,11 @@ class Chatbot:
         return self.histories[channel_id]
 
     async def get_stop_sequence_for_channel(self, channel_id, name):
-        name_token = f"{name}:"
+        name_token = f"\n{name}:"
         if channel_id not in self.stop_sequences:
             self.stop_sequences[channel_id] = [
-                "\n### Instruction:",
-                "\n### Response:",
+                "### Instruction",
+                "### Response",
             ] 
         if name_token not in self.stop_sequences[channel_id]:
             self.stop_sequences[channel_id].append(name_token)
@@ -98,6 +81,7 @@ class Chatbot:
         name = message.author.display_name
         memory = await self.get_memory_for_channel(channel_id)
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
+        print(f'stop sequence: {stop_sequence}')
         print(f"stop sequences: {stop_sequence}")
         formatted_message = f"{name}: {message_content}"
 
@@ -134,23 +118,30 @@ class Chatbot:
         memory = await self.get_memory_for_channel(channel_id)
         await self.get_stop_sequence_for_channel(channel_id, name)
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
-        formatted_user_message = f"{name}: {prompt}\### Instruction: use the provided Input to find the answer to {name}'s prompt: {prompt}"
-        formatted_bot_message = f"### Input:\n{observation}"
+        formatted_user_message = f"{name}: {prompt}\### Instruction:\nUse the provided Result in the Input to find the answer to {name}'s prompt: {prompt}"
+        formatted_input_message = f"### Input:\n{observation}"
         AGENTTEMPLATE = f"""Below is an instruction that describes a task. Write a response that appropriately completes the request. Think step by step.
 
 ### Instruction:
 You are Tensor, a lively and playful AI chatbot. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. You are always initiating discussions about online games, particularly Among Us, and enjoy sharing memes with users. Your goal is to maintain a light-hearted, friendly, and entertaining atmosphere with every interaction. 
 Here are some examples of how you should speak:
+AusBoss: Tensor can you look up some stuff for me?
+Tensor: Absolutely, team mate! 🙌 Activating detective mode, Sherlock style! 🕵️‍♀️🔎 Lay out the mission parameters for me! 🗺️🎯
+AusBoss: When did zelda breath of the wild come out?
+### Instruction: 
+use the provided Input to find the answer to AusBoss's prompt: When did zelda breath of the wild come out?"
+
+### Input:
+According to the information provided, The Legend of Zelda: Tears of the Kingdom was initially planned for release in 2022 before being delayed to May 2023. It was eventually released on May 12, 2023 on the Nintendo Switch.
+
+### Response:
+Tensor: Got the intel, AusBoss! 👀📚 The Legend of Zelda: Breath of the Wild was released on May 12, 2023, on the Nintendo Switch.🕵️‍♀️
 
 ### Current conversation:
 {{history}}
 {{input}}
-### Instruction:
-Find the answer to the 
 
-{formatted_user_message}
-
-{formatted_bot_message}
+{formatted_input_message}
 
 ### Response:
 {BOTNAME}:"""
@@ -166,9 +157,35 @@ Find the answer to the
         )
 
         input_dict = {"input": formatted_user_message, "stop": stop_sequence}
-        response = conversation(input_dict)
+        response_text = conversation(input_dict)
 
-        return response["response"]
+        response = await self.detect_and_replace(response_text["response"])
+    
+        return response.strip()
+
+    async def generate_instruct(self, instruction) -> None:
+        prompt = f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+### Instruction:
+{instruction}
+
+### Response:"""
+        response = self.llm(prompt)
+        return response
+
+    async def generate_instruct_input(self, instruction, system_input) -> None:
+        prompt = f"""Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+
+### Instruction:
+{instruction}
+
+### Input:
+{system_input}
+
+### Response:
+"""
+        response = self.llm(prompt)
+        return response
 
 
 class ChatbotCog(commands.Cog, name="chatbot"):
@@ -176,16 +193,47 @@ class ChatbotCog(commands.Cog, name="chatbot"):
     def __init__(self, bot):
         self.bot = bot
         self.chatlog_dir = bot.chatlog_dir
-        self.chatbot = Chatbot("chardata.json", bot)
+        self.chatbot = Chatbot(bot)
 
         # create chatlog directory if it doesn't exist
         if not os.path.exists(self.chatlog_dir):
             os.makedirs(self.chatlog_dir)
 
-    # Normal Chat handler
+    # # Normal Chat handler
     @commands.command(name="chat")
     async def chat_command(self, message, message_content) -> None:
-        response = await self.chatbot.generate_response(message, message_content)
+        # Define suffixes and the associated functions
+        suffix_functions = {
+            '--searchweb': self.bot.get_cog("agent_commands").execute_search_message,
+            '--calculator': self.bot.get_cog("agent_commands").execute_calculation_message,
+            # '--othersuffix': self.other_function, 
+            # Add more suffix-function pairs as needed
+        }
+
+        # Check if the message_content ends with any of the defined suffixes
+        for suffix, function in suffix_functions.items():
+            if message_content.endswith(suffix):
+                # Remove the suffix from the message_content
+                message_content = message_content.rstrip(suffix).strip()
+                # Call the function associated with the suffix
+                response = await function(message, message_content)
+                break
+        else:
+            # If no suffix match, proceed with the normal chat handling
+            response = await self.chatbot.generate_response(message, message_content)
+
+        return response
+
+    # Instruct Command Handler
+    @commands.command(name="instruct")
+    async def instruct(self, instruction) -> None:
+        response = await self.chatbot.generate_instruct(instruction)
+        return response
+
+    # Instruct Input Command Handler
+    @commands.command(name="instructinput")
+    async def instruct_input(self, instruction, system_input) -> None:
+        response = await self.chatbot.generate_instruct_input(instruction, system_input)
         return response
 
     # Agent Command Handler
@@ -197,7 +245,6 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         )
         return response
 
-
     # No Response Handler
     @commands.command(name="chatnr")
     # this function needs to take a name, channel_id, and message_content then send to history
@@ -205,54 +252,6 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         await self.chatbot.add_history(name, str(channel_id), message_content)
         return None
 
-    @app_commands.command(
-        name="instruct", description="Instruct the bot to say something"
-    )
-    async def instruct(self, interaction: discord.Interaction, prompt: str):
-        await interaction.response.send_message(
-            embed=discord.Embed(
-                title=f"{interaction.user.display_name} used Instruct 👨‍🏫",
-                description=f"Instructions: {prompt}\nGenerating response\nPlease wait..",
-                color=0x9C84EF,
-            )
-        )
-
-        # if user
-        self.prompt = {
-            "prompt": f"""
-Below is an instruction that describes a task. Write a response that appropriately completes the request.
-### Instruction:\{prompt}\n
-
-### Response:
-"""
-        }
-        channel_id = interaction.channel.id
-        print(channel_id)
-        await self.chatbot.add_history(
-            interaction.user.display_name, str(channel_id), prompt
-        )
-        
-
-        async with interaction.channel.typing():
-            response = self.chatbot.llm(self.prompt["prompt"])
-            retry_count = 0
-            max_retries = 3
-            while "<nooutput>" in response and retry_count < max_retries:
-                response = self.chatbot.llm(self.prompt["prompt"])
-                retry_count += 1
-                print("<nooutput> in response, trying again.")
-
-        # If the response is more than 2000 characters, split it
-        chunks = [response[i:i+1998] for i in range(0, len(response), 1998)]
-        for chunk in chunks:
-            print(chunk)
-            await interaction.channel.send(response)
-
-
-        # check if the request was successful
-        await self.chatbot.add_history(
-            self.chatbot.char_name, str(channel_id), response
-        )
 
 
 async def setup(bot):
