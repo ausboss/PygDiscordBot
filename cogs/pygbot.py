@@ -12,7 +12,7 @@ from discord.ext.commands import Bot
 import chromadb
 from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
-
+from langchain.llms import KoboldApiLLM
 from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import messages_from_dict, messages_to_dict
 
@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 from helpers.constants import MAINTEMPLATE, BOTNAME
 from helpers.custom_memory import *
 from pydantic import Field
-from koboldllm import KoboldApiLLM
+
 from ooballm import OobaApiLLM
 
 
