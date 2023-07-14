@@ -20,3 +20,6 @@ discord.log
 discord.log
 database/messages.db
 discord.log
+discord.log
+*.db
+database/database.db
