@@ -1,13 +1,11 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-import langchain
 
 from langchain.document_loaders import YoutubeLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains.summarize import load_summarize_chain
 
-import torch
 
 
 class YoutubeSummaryCog(commands.Cog):
@@ -17,7 +15,7 @@ class YoutubeSummaryCog(commands.Cog):
         self.llm = self.bot.llm
 
     @app_commands.command(name="youtubesummary", description="Summarize a YouTube video given its URL")
-    async def summarize(self, interaction: discord.Interaction, url: str):
+    async def youtube_summarize(self, interaction: discord.Interaction, url: str):
         await interaction.response.defer()
 
         # Notifies the user that the bot is processing their command.

@@ -10,33 +10,12 @@ from discord.ext import commands
 from discord.ext.commands import Bot
 
 import chromadb
-from chromadb.utils import embedding_functions
-from chromadb.config import Settings
-import uuid
-import langchain
-from langchain.chains import (
-    ConversationChain,
-    LLMChain,
-    LLMMathChain,
-    TransformChain,
-    SequentialChain,
-)
+from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
-from langchain.docstore import InMemoryDocstore
-from langchain.llms.base import LLM, Optional, List, Mapping, Any
-from langchain.embeddings.openai import OpenAIEmbeddings
-from textwrap import dedent
-from langchain.memory import (
-    ChatMessageHistory,
-    ConversationBufferMemory,
-    ConversationBufferWindowMemory,
-    ConversationSummaryBufferMemory,
-)
+
 from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import messages_from_dict, messages_to_dict
-from langchain.vectorstores import Chroma
-from langchain.agents import load_tools
-from langchain.agents import initialize_agent
+
 import os
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
 from dotenv import load_dotenv
@@ -102,7 +81,7 @@ class Chatbot:
             self.stop_sequences[channel_id] = [
                 "\n### Instruction:",
                 "\n### Response:",
-            ]  # EXPERIMENT: Testing adding the triple line break to see if that helps with stopping
+            ] 
         if name_token not in self.stop_sequences[channel_id]:
             self.stop_sequences[channel_id].append(name_token)
         return self.stop_sequences[channel_id]
