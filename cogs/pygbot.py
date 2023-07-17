@@ -65,16 +65,25 @@ class Chatbot:
             self.stop_sequences[channel_id] = [
                 "### Instruction",
                 "### Response",
+                "\n\n"
             ] 
         if name_token not in self.stop_sequences[channel_id]:
             self.stop_sequences[channel_id].append(name_token)
         return self.stop_sequences[channel_id]
 
     # this command will detect if the bot is trying to send  \nself.char_name: in its message and replace it with an empty string
-    async def detect_and_replace(self, message_content):
-        if f"\n{self.char_name}:" in message_content:
+    async def detect_and_replace_out(self, message_content):
+        if f"\n{self.char_name}:":
             message_content = message_content.replace(f"\n{self.char_name}:", "")
         return message_content
+
+    # this command will detect if @botname is in the message and replace it with an empty string
+    async def detect_and_replace_in(self, message_content):
+        if f"@{self.char_name}":
+            message_content = message_content.replace(f"@{self.char_name}", "")
+        return message_content
+
+
 
     async def generate_response(self, message, message_content) -> None:
         channel_id = str(message.channel.id)
@@ -97,7 +106,7 @@ class Chatbot:
 
         response_text = conversation(input_dict)
 
-        response = await self.detect_and_replace(response_text["response"])
+        response = await self.detect_and_replace_out(response_text["response"])
 
         return response
 
@@ -159,7 +168,7 @@ Tensor: Got the intel, AusBoss! 👀📚 The Legend of Zelda: Breath of the Wild
         input_dict = {"input": formatted_user_message, "stop": stop_sequence}
         response_text = conversation(input_dict)
 
-        response = await self.detect_and_replace(response_text["response"])
+        response = await self.detect_and_replace_out(response_text["response"])
     
         return response.strip()
 
