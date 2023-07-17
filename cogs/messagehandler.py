@@ -9,7 +9,7 @@ from helpers.constants import ALIASES
 from helpers.db_manager import log_message
 
 SLEEPTIMER = 5
-
+WAITTIMER = 20
 
 def embedder(msg):
     embed = discord.Embed(
@@ -23,8 +23,53 @@ class ListenerCog(commands.Cog, name="listener"):
 
     def __init__(self, bot):
         self.bot = bot
+        # create a dictionary of messages where the channel id is the key and the value is the message
+        self.message_dict = {}
         # self.listen_only_mode needs to be a dictionary with the guild id as the key and the value as the boolean
         self.listen_only_mode = {int(guild_id): False for guild_id in self.bot.channel_list}
+        self.bot_sent_last_message = True
+
+
+    # create a function that will take a message and add it to the message dictionary wit the channel id as the key. if the key already exists, it will append the message to the list of messages
+    async def add_message_to_dict(self, message, message_content):
+        if message.channel.id in self.message_dict:
+            self.message_dict[message.channel.id].append(f"{message.author.display_name}: {message_content}")
+        else:
+            self.message_dict[message.channel.id] = [f"{message.author.display_name}: {message_content}"]
+
+
+
+    # function that will send the list of messages for a channel to the logic cog
+    async def send_message_list(self, channel_id):
+        # get the list of messages for the channel
+        message_list = self.message_dict[channel_id]
+        print(f"message_list: {message_list}")
+        # join message list by \n
+        message_list = "\n".join(message_list)
+        print(f" joined message_list: {message_list}")
+
+        # send the prompt to the logic cog
+        response = await self.bot.get_cog("extra_logic").my_turn(message_list)
+        # return the response
+        return response
+
+    
+    # a function that will set a timer for one minute then send_message_list if self.bot_sent_last_message is True
+    async def set_timer(self, channel_id):
+        # start the timer
+        print(f"Message wait Timer started for channel {channel_id}")
+        await asyncio.sleep(WAITTIMER)
+        print(f"Message wait Timer ended for channel {channel_id}")
+        # if self.bot_sent_last_message is True, send_message_list
+        if not self.bot_sent_last_message:
+            response = await self.send_message_list(channel_id)
+            # if response is True, set self.bot_sent_last_message to False
+            if response:
+                self.bot_sent_last_message = False
+            
+
+
+
 
     class ListenOnlyModeSelect(discord.ui.Select):
 
@@ -91,26 +136,21 @@ class ListenerCog(commands.Cog, name="listener"):
 
         if mode == 'nr':
             await self.bot.get_cog("chatbot").chat_command_nr(message.author.display_name, message.channel.id, image_response)
+            self.bot_sent_last_message = False
+            await self.add_message_to_dict(message, image_response)
+            await self.set_timer(message.channel.id)
         else:
             response = await self.bot.get_cog("chatbot").chat_command(message, image_response)
+            await self.add_message_to_dict(message, image_response)
             if response:
                 async with message.channel.typing():
-                    retry_count = 0
-                    max_retries = 3
-                    while "<nooutput>" in response and retry_count < max_retries:
-                        new_response = self.chatbot.llm(self.prompt["prompt"])
-                        retry_count += 1
-                        print("<nooutput> in response, trying again.")
-                        if new_response:
-                            response = new_response
-                        else:
-                            break
-
                     # If the response is more than 2000 characters, split it
                     chunks = [response[i:i+1998] for i in range(0, len(response), 1998)]
                     for chunk in chunks:
                         print(chunk)
                         response_obj = await message.channel.send(chunk)
+                        await self.add_message_to_dict(response_obj, response_obj.clean_content)
+                        self.bot_sent_last_message = True
                         await log_message(response_obj)
 
 
@@ -121,8 +161,12 @@ class ListenerCog(commands.Cog, name="listener"):
         await log_message(message)
         if mode == 'nr':
             await self.bot.get_cog("chatbot").chat_command_nr(message.author.display_name, message.channel.id, message.clean_content)
+            self.bot_sent_last_message = False
+            await self.add_message_to_dict(message, message.clean_content)
+            await self.set_timer(message.channel.id)
         else:
             response = await self.bot.get_cog("chatbot").chat_command(message, message.clean_content)
+            await self.add_message_to_dict(message, message.clean_content)
             async with message.channel.typing():
                 retry_count = 0
                 max_retries = 3
@@ -140,6 +184,8 @@ class ListenerCog(commands.Cog, name="listener"):
                 for chunk in chunks:
                     print(chunk)
                     response_obj = await message.channel.send(chunk)
+                    await self.add_message_to_dict(response_obj, response_obj.clean_content)
+                    self.bot_sent_last_message = True
                     await log_message(response_obj)
 
 

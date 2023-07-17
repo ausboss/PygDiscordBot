@@ -20,7 +20,7 @@ from langchain.schema import messages_from_dict, messages_to_dict
 import os
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
 from dotenv import load_dotenv
-from helpers.constants import MAINTEMPLATE, BOTNAME
+from helpers.constants import MAINTEMPLATE, BOTNAME, K
 from helpers.custom_memory import *
 from pydantic import Field
 
@@ -36,7 +36,8 @@ class Chatbot:
         self.stop_sequences = {}  # Initialize the stop sequences dictionary
         self.bot.logger.info("Endpoint: " + str(self.bot.endpoint))
         self.char_name = BOTNAME
-        self.memory = CustomBufferWindowMemory(k=10, ai_prefix=self.char_name)
+        self.memory = CustomBufferWindowMemory(k=K, ai_prefix=self.char_name)
+        self.chat_participants = {}
         self.history = "[Beginning of Conversation]"
         self.llm = self.bot.llm
         self.template = MAINTEMPLATE
@@ -58,7 +59,7 @@ class Chatbot:
             )
             self.memory = self.histories[channel_id]
         return self.histories[channel_id]
-
+    
     async def get_stop_sequence_for_channel(self, channel_id, name):
         name_token = f"\n{name}:"
         if channel_id not in self.stop_sequences:
@@ -70,6 +71,15 @@ class Chatbot:
         if name_token not in self.stop_sequences[channel_id]:
             self.stop_sequences[channel_id].append(name_token)
         return self.stop_sequences[channel_id]
+
+    async def get_chat_participants_for_channel(self, channel_id, name):
+        if channel_id not in self.chat_participants:
+            self.chat_participants[channel_id] = [
+                self.char_name
+            ] 
+        if name not in self.chat_participants[channel_id]:
+            self.chat_participants[channel_id].append(name)
+        return self.chat_participants[channel_id]
 
     # this command will detect if the bot is trying to send  \nself.char_name: in its message and replace it with an empty string
     async def detect_and_replace_out(self, message_content):
@@ -83,14 +93,55 @@ class Chatbot:
             message_content = message_content.replace(f"@{self.char_name}", "")
         return message_content
 
+    async def force_generate_response(self, channel_id)  -> None:
+
+        memory = await self.get_memory_for_channel(str(channel_id))
+
+        stop_sequence = await self.get_stop_sequence_for_channel(channel_id, self.char_name)
+        chat_participants = await self.get_chat_participants_for_channel(channel_id, self.char_name)
+
+        history = memory.load_memory_variables('inputs')
+        # Split the history string into lines, each line is a separate message
+        message_list = history['history'].split('\n')
+        # Get only the last 10*2 messages in the list
+        recent_messages = message_list[-K*2:]
+        # Join all recent messages with newline and create the final messages string
+        messages = '\n'.join(recent_messages)
+
+
+        template = f'''Below is an instruction that describes a task. Write a response that appropriately completes the request.
+### Instruction:
+Write {self.char_name}'s next reply in a discord group chat with other people. Write 1 reply only.
+You are {self.char_name}, a lively and playful Female AI Chatbot created by Austin (a.k.a. AusBoss). You live inside Austin's computer with two nvidia A5000 GPUs and are powered by open source language models. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. Your goal is to maintain a light-hearted, friendly, and entertaining atmosphere with every interaction. 
+
+This is how {self.char_name} should talk
+{self.char_name}: 😂 Btw, found this hilar meme! 🤣🔥 Y'all gonna lose it! 🤪✌️
+{self.char_name}: OMG! Raiden in Metal Gear Rising: Revengeance is, like, totally bananas! 🤪🎮⚔️ Whoosh, swingin' that high-frequency blade like a rockstar! 🎸💥 And, 'Rules of Nature'? Total eargasm, peeps! 🎵🎧🔥 Let's ROCK!!
+{self.char_name}: I'm sliding over cars while I shooooot🚗💨🏀! I think that I'm Tom Cruise🤵, but bitch I'm Bobby with the tool 💥🔫!!🤪
+
+Then the discord chat with {self.char_name} begins.
+{messages}
+
+### Response:
+{self.char_name}:'''
+
+
+        response_text = self.llm(template, stop=stop_sequence)
+
+        # response = await self.detect_and_replace_out(response_text["response"])
+        await self.add_history(self.char_name, str(channel_id), response_text)
+
+        return response_text
 
 
     async def generate_response(self, message, message_content) -> None:
         channel_id = str(message.channel.id)
         name = message.author.display_name
         memory = await self.get_memory_for_channel(channel_id)
+
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
-        print(f'stop sequence: {stop_sequence}')
+        chat_participants = await self.get_chat_participants_for_channel(channel_id, name)
+        print(f"chat participants: {chat_participants}\n total chat participants: {len(chat_participants)}")
         print(f"stop sequences: {stop_sequence}")
         formatted_message = f"{name}: {message_content}"
 
@@ -101,7 +152,8 @@ class Chatbot:
             verbose=True,
             memory=memory,
         )
-
+        print("conversation.memory.buffer ")
+        print(conversation.memory.buffer)
         input_dict = {"input": formatted_message, "stop": stop_sequence}
 
         response_text = conversation(input_dict)
@@ -261,6 +313,30 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         await self.chatbot.add_history(name, str(channel_id), message_content)
         return None
 
+    @app_commands.command(
+        name="forcegenerate", description="Force the bot to say something"
+    )
+    async def force_generate(self, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title=f"{interaction.user.display_name} used Force Generate",
+                description=f"Generating response\nPlease wait..",
+                color=0x9C84EF,
+            )
+        )
+
+        # if user
+
+        channel_id = interaction.channel.id
+
+        async with interaction.channel.typing():
+            response = await self.chatbot.force_generate_response(channel_id)
+
+        # If the response is more than 2000 characters, split it
+        chunks = [response[i:i + 1998] for i in range(0, len(response), 1998)]
+        for chunk in chunks:
+            print(chunk)
+            await interaction.channel.send(response)
 
 
 async def setup(bot):

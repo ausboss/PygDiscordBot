@@ -72,7 +72,7 @@ async def log_message(message: discord.Message):
                         message.author.id,
                         message.author.name,
                         message.author.display_name,
-                        message.content,
+                        message.clean_content,
                         str(message.created_at),
                         str(message.edited_at) if message.edited_at else None,
                         message.jump_url,

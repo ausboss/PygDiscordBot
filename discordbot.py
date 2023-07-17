@@ -16,6 +16,7 @@ from helpers import db_manager
 
 from langchain.chat_models import ChatOpenAI
 from langchain.llms import KoboldApiLLM
+from koboldllm import KoboldApiLLM2
 from langchain.llms import TextGen
 
 # assuming exceptions is a custom module, otherwise remove this
@@ -26,54 +27,6 @@ if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/config.jso
 else:
     with open(f"{os.path.realpath(os.path.dirname(__file__))}/config.json") as file:
         config = json.load(file)
-
-# # Load .env file
-# load_dotenv()
-
-# # Initialize bot
-# intents = discord.Intents.all()
-# bot = Bot(command_prefix="/", intents=intents, help_command=None)
-
-# # Get environment variables
-# DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-# OOBAENDPOINT = os.getenv("OOBAENDPOINT")
-# KOBOLDENDPOINT = os.getenv("KOBOLDENDPOINT")
-# CHANNEL_ID = os.getenv("CHANNEL_ID")
-# OWNERS = os.getenv("OWNERS")
-# OPENAI = os.getenv("OPENAI")
-
-# intents = discord.Intents.all()
-# bot = Bot(command_prefix="/", intents=intents, help_command=None)
-# # Check KOBOLDENDPOINT, OOBAENDPOINT, and OPENAI variables to see which is in use
-# if KOBOLDENDPOINT:
-#     ENDPOINT = KOBOLDENDPOINT
-#     bot.llm = "kobold"
-# elif OOBAENDPOINT:
-#     ENDPOINT = OOBAENDPOINT
-#     bot.llm = "ooba"
-# elif OPENAI:
-#     ENDPOINT = OPENAI
-#     bot.llm = "openai"
-# else:
-#     print("One or more required environment variables are missing.")
-#     print("Make sure to set KOBOLDENDPOINT, OOBAENDPOINT, or OPENAI in the .env file.")
-#     sys.exit(1)
-
-#         # Check if self.bot.llm == "kobold" or "ooba" to set the llm
-#         if self.bot.llm == "kobold":
-#             self.llm = KoboldApiLLM(endpoint=self.bot.endpoint)
-#         elif self.bot.llm == "ooba":
-#             # Provide a valid endpoint for the OobaApiLLM instance
-#             self.llm = TextGen(model_url=self.bot.endpoint, min_length=10, max_new_tokens=1500)
-#         elif self.bot.llm == "openai":
-#             self.llm = ChatOpenAI(
-#                 model_name="gpt-4", temperature=0.7
-#             )
-#         self.bot.llm = self.llm
-
-
-# bot.endpoint = ENDPOINT
-# Load environment variables
 
 # Load environment variables
 load_dotenv()
@@ -104,18 +57,13 @@ bot.llm = ""
 
 # Create an instance of the LLM class according to the endpoint that is available
 if bot.llm_name == 'kobold':
-    bot.llm = KoboldApiLLM(endpoint=bot.endpoint)
+    bot.llm = KoboldApiLLM2(endpoint=bot.endpoint)
 elif bot.llm_name == 'ooba':
     bot.llm = TextGen(model_url=bot.endpoint, min_length=10, max_new_tokens=1500)
 elif bot.llm_name == 'openai':
     bot.llm = ChatOpenAI(model_name="gpt-4", temperature=0.7)
 
-
-
 bot.openai = OPENAI
-
-
-
 
 if len(bot.endpoint.split("/api")) > 0:
     bot.endpoint = bot.endpoint.split("/api")[0]
