@@ -78,12 +78,12 @@ class AgentCommands(commands.Cog, name="agent_commands"):
         return response
 
     @commands.command(name="calculator")
-    async def execute_calculation_message(self, message, message_content) -> None:
+    async def execute_calculation_message(self, name, channel_id, message_content) -> None:
         """This command takes a message and returns the result of the calculation."""
         
         return await self._execute_calculation(
-            message.author.display_name,
-            message.channel.id,
+            name,
+            str(channel_id),
             message_content
         )
 
@@ -135,12 +135,12 @@ class AgentCommands(commands.Cog, name="agent_commands"):
         return response
 
     @commands.command(name="searchwebmessage")
-    async def execute_search_message(self, message, message_content) -> None:
+    async def execute_search_message(self, name, channel_id, message_content) -> None:
         """This command takes a message and returns the result of the calculation."""
         
         return await self._execute_search(
-            message.author.display_name,
-            message.channel.id,
+            name,
+            str(channel_id),
             message_content
         )
 
@@ -201,7 +201,7 @@ Below is an instruction that describes a task. Write a response that appropriate
 
         async with interaction.channel.typing():
             response = await self.bot.get_cog("chatbot").instruct(prompt)
-
+            updated_string = response.replace("'''", "```")
             # Check if response is not None
             if response:
                 await self.bot.get_cog("chatbot").chat_command_nr(interaction.user.display_name, str(channel_id), prompt)
@@ -210,8 +210,9 @@ Below is an instruction that describes a task. Write a response that appropriate
                 chunks = [response[i:i + 1998] for i in range(0, len(response), 1998)]
                 for chunk in chunks:
                     print(chunk)
-                    response_obj = await interaction.channel.send(response)
-                    await self.bot.get_cog("chatbot").chat_command_nr(BOTNAME, str(response_obj.channel.id), response_obj.clean_content)
+                    
+                    response_obj = await interaction.channel.send(updated_string)
+                    await self.bot.get_cog("chatbot").chat_command_nr(BOTNAME, str(response_obj.channel.id), updated_string)
 
                 # check if the request was successful
             else:

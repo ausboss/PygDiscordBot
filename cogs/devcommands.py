@@ -50,7 +50,11 @@ class DevCommands(commands.Cog, name="dev_commands"):
         await interaction.response.send_message("Select a cog to reload:", view=view)
 
 
-
+    # takes the ending url of a rentry and a string then appends the string to the rentry
+    @app_commands.command(name="updateendpoint", description="append to a rentry")
+    async def update_endpoint(self, interaction: discord.Interaction, endpoint_url: str):
+        self.bot.endpoint = endpoint_url
+        await interaction.response.send_message(f"Endpoint updated to {endpoint_url}")
 
     @commands.Cog.listener()
     async def on_ready(self):

@@ -71,7 +71,7 @@ bot.chatlog_dir = "chatlog_dir"
 bot.endpoint_connected = False
 bot.channel_list = [int(x) for x in CHANNEL_ID.split(",")]
 bot.owners = [int(x) for x in OWNERS.split(",")]
-
+bot.sent_last_message = {}
 
 class LoggingFormatter(logging.Formatter):
     # Colors

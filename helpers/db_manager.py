@@ -12,6 +12,32 @@ async def setup_db():
     await create_messages_table()
 
 
+
+async def get_messages_by_channel(channel_id):
+    MESSAGES_PATH = f"./database/messages.db"
+    message_list = []
+
+    async with aiosqlite.connect(MESSAGES_PATH) as db:
+        cursor = await db.execute('''
+            SELECT author_display_name, channel_id, content
+            FROM log_message
+            WHERE channel_id = ?
+            ORDER BY created_at DESC
+            LIMIT 10
+        ''', (channel_id,))
+
+        rows = await cursor.fetchall()
+
+        for row in rows:
+            author_display_name = row[0]
+            channel_id = row[1]
+            content = row[2]
+            message_list.append((author_display_name, channel_id, content))
+
+    return message_list
+
+
+
 async def create_messages_table():
     async with aiosqlite.connect(MESSAGES_PATH) as db:
         await db.execute('''

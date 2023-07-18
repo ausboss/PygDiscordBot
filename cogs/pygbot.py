@@ -24,7 +24,11 @@ from helpers.constants import MAINTEMPLATE, BOTNAME, K
 from helpers.custom_memory import *
 from pydantic import Field
 
+from helpers.db_manager import get_messages_by_channel
+
 from ooballm import OobaApiLLM
+import datetime
+
 
 
 class Chatbot:
@@ -52,14 +56,31 @@ class Chatbot:
             memory=self.memory,
         )
 
+    # this command will get the memory for the channel with the given ID. If no memory exists yet, create one and attempt to add the last 5 messages from the channel to the memory using get_messages_by_channel and add_history functions
     async def get_memory_for_channel(self, channel_id):
         """Get the memory for the channel with the given ID. If no memory exists yet, create one."""
+        channel_id = str(channel_id)
         if channel_id not in self.histories:
+            # Create a new memory for the channel
             self.histories[channel_id] = CustomBufferWindowMemory(
                 k=20, ai_prefix=self.char_name
             )
-            self.memory = self.histories[channel_id]
+            # Get the last 5 messages from the channel in a list
+            messages = await get_messages_by_channel(channel_id)
+            messages_to_add = messages[-2::-1]  # Exclude the last message using slicing
+            messages_to_add_minus_one = messages_to_add[:-1]
+            # Add the messages to the memory 
+            for message in messages_to_add_minus_one:
+                
+                name = message[0]
+                channel_ids = str(message[1])
+                message = message[2]
+                print(f"{name}: {message}")
+                await self.add_history(name, channel_ids, message)
+        
+        # self.memory = self.histories[channel_id]
         return self.histories[channel_id]
+
     
     async def get_stop_sequence_for_channel(self, channel_id, name):
         name_token = f"\n{name}:"
@@ -72,6 +93,20 @@ class Chatbot:
         if name_token not in self.stop_sequences[channel_id]:
             self.stop_sequences[channel_id].append(name_token)
         return self.stop_sequences[channel_id]
+
+    # function that generates a system message string with the date and time
+    async def generate_system_message(self):
+        # Get the current date and time
+        now = datetime.datetime.now()
+
+        # Format the date and time as desired
+        formatted_time = now.strftime("%I:%M %p")  # 10:23 AM
+        formatted_date = now.strftime("%A, %B %dth %Y")  # Tuesday, July 18th 2023
+
+        # Create the final message
+        message = f"It is currently {formatted_time} CST on {formatted_date}"
+        return message
+
 
     async def get_chat_participants_for_channel(self, channel_id, name):
         if channel_id not in self.chat_participants:
@@ -108,12 +143,13 @@ class Chatbot:
         recent_messages = message_list[-K*2:]
         # Join all recent messages with newline and create the final messages string
         messages = '\n'.join(recent_messages)
+        system_message = await self.generate_system_message()
 
 
         template = f'''Below is an instruction that describes a task. Write a response that appropriately completes the request.
 ### Instruction:
 Write {self.char_name}'s next reply in a discord group chat with other people. Write 1 reply only.
-You are {self.char_name}, a lively and playful Female AI Chatbot created by Austin (a.k.a. AusBoss). You live inside Austin's computer with two nvidia A5000 GPUs and are powered by open source language models. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. Your goal is to maintain a light-hearted, friendly, and entertaining atmosphere with every interaction. 
+{system_message} You are {self.char_name}, a lively and playful Female AI Chatbot created by Austin (a.k.a. AusBoss). You live inside Austin's computer with two nvidia A5000 GPUs and are powered by open source language models. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. Your goal is to maintain a light-hearted, friendly, and entertaining atmosphere with every interaction. 
 
 This is how {self.char_name} should talk
 {self.char_name}: 😂 Btw, found this hilar meme! 🤣🔥 Y'all gonna lose it! 🤪✌️
@@ -136,20 +172,43 @@ Then the discord chat with {self.char_name} begins.
         return response_text
 
 
-    async def generate_response(self, message, message_content) -> None:
-        channel_id = str(message.channel.id)
-        name = message.author.display_name
-        memory = await self.get_memory_for_channel(channel_id)
+    async def generate_response(self, name, channel_id, message_content) -> None:
 
+        memory = await self.get_memory_for_channel(str(channel_id))
+
+        
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
         chat_participants = await self.get_chat_participants_for_channel(channel_id, name)
         print(f"chat participants: {chat_participants}\n total chat participants: {len(chat_participants)}")
         print(f"stop sequences: {stop_sequence}")
         formatted_message = f"{name}: {message_content}"
+        system_message = await self.generate_system_message()
+        MAIN_TEMPLATE = f'''Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+Write {BOTNAME}'s next reply in a discord group chat with other people. Write 1 reply only.
+{system_message}. You are {BOTNAME}, a lively and playful Female AI Chatbot created by Austin (a.k.a. AusBoss). You live inside Austin's computer with two nvidia A5000 GPUs and are powered by open source language models. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. Your goal is to maintain a light-hearted, friendly, and entertaining atmosphere with every interaction. 
+
+Examples of how {BOTNAME} should talk. Do not use these examples as your response.
+{BOTNAME}: 😂 Btw, found this hilar meme! 🤣🔥 Y'all gonna lose it! 🤪✌️
+{BOTNAME}: OMG! Raiden in Metal Gear Rising: Revengeance is, like, totally bananas! 🤪🎮⚔️ Whoosh, swingin' that high-frequency blade like a rockstar! 🎸💥 And, 'Rules of Nature'? Total eargasm, peeps! 🎵🎧🔥 Let's ROCK!!
+{BOTNAME}: I'm sliding over cars while I shooooot🚗💨🏀! I think that I'm Tom Cruise🤵, but bitch I'm Bobby with the tool 💥🔫!!🤪
+
+
+Then the discord chat with {BOTNAME} begins.
+{{history}}
+
+### Instruction:
+{{input}}
+
+### Response:
+{BOTNAME}:'''
+        PROMPT = PromptTemplate(
+            input_variables=["history", "input"], template=MAIN_TEMPLATE
+        )
 
         # Create a conversation chain using the channel-specific memory
         conversation = ConversationChain(
-            prompt=self.PROMPT,
+            prompt=PROMPT,
             llm=self.llm,
             verbose=True,
             memory=memory,
@@ -265,7 +324,8 @@ class ChatbotCog(commands.Cog, name="chatbot"):
 
     # # Normal Chat handler
     @commands.command(name="chat")
-    async def chat_command(self, message, message_content) -> None:
+    async def chat_command(self, name, channel_id, message_content) -> None:
+
         # Define suffixes and the associated functions
         suffix_functions = {
             '--searchweb': self.bot.get_cog("agent_commands").execute_search_message,
@@ -280,13 +340,21 @@ class ChatbotCog(commands.Cog, name="chatbot"):
                 # Remove the suffix from the message_content
                 message_content = message_content.rstrip(suffix).strip()
                 # Call the function associated with the suffix
-                response = await function(message, message_content)
+                response = await function(name, channel_id, message_content)
                 break
         else:
             # If no suffix match, proceed with the normal chat handling
-            response = await self.chatbot.generate_response(message, message_content)
-
+            response = await self.chatbot.generate_response(name, channel_id, message_content)
+        self.bot.sent_last_message[str(channel_id)] = True
         return response
+
+    # No Response Handler
+    @commands.command(name="chatnr")
+    # this function needs to take a name, channel_id, and message_content then send to history
+    async def chat_command_nr(self, name, channel_id, message_content) -> None:
+        await self.chatbot.add_history(name, str(channel_id), message_content)
+        return None
+
 
     # Instruct Command Handler
     @commands.command(name="instruct")
@@ -309,12 +377,6 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         )
         return response
 
-    # No Response Handler
-    @commands.command(name="chatnr")
-    # this function needs to take a name, channel_id, and message_content then send to history
-    async def chat_command_nr(self, name, channel_id, message_content) -> None:
-        await self.chatbot.add_history(name, str(channel_id), message_content)
-        return None
 
     # force generate response
     @commands.command(name="forcegeneratemessage")
