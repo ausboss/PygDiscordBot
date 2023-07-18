@@ -54,20 +54,20 @@ class KoboldApiLLM2(LLM):
     use_memory: Optional[bool] = False
     """Whether to use the memory from the KoboldAI GUI when generating text."""
 
-    max_context_length: Optional[int] = 1600
+    max_context_length: Optional[int] = 2048
     """Maximum number of tokens to send to the model.
     
     minimum: 1
     """
 
-    max_length: Optional[int] = 512
+    max_length: Optional[int] = 400
     """Number of tokens to generate.
     
     maximum: 512
     minimum: 1
     """
 
-    rep_pen: Optional[float] = 1.18
+    rep_pen: Optional[float] = 1.10
     """Base repetition penalty value.
     
     minimum: 1
@@ -79,7 +79,7 @@ class KoboldApiLLM2(LLM):
     minimum: 0
     """
 
-    rep_pen_slope: Optional[float] = 0.9
+    rep_pen_slope: Optional[float] = 0.7
     """Repetition penalty slope.
     
     minimum: 0

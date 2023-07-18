@@ -26,23 +26,24 @@ class ListenerCog(commands.Cog, name="listener"):
         # create a dictionary of messages where the channel id is the key and the value is the message
         self.message_dict = {}
         # self.listen_only_mode needs to be a dictionary with the guild id as the key and the value as the boolean
-        self.listen_only_mode = {int(guild_id): False for guild_id in self.bot.channel_list}
-        self.bot_sent_last_message = True
+        self.listen_only_mode = {str(guild_id): False for guild_id in self.bot.channel_list}
+        self.bot_sent_last_message = {str(channel_id): True for channel_id in self.bot.channel_list}
+        self.timer_running = {}
 
 
     # create a function that will take a message and add it to the message dictionary wit the channel id as the key. if the key already exists, it will append the message to the list of messages
     async def add_message_to_dict(self, message, message_content):
-        if message.channel.id in self.message_dict:
-            self.message_dict[message.channel.id].append(f"{message.author.display_name}: {message_content}")
+        if str(message.channel.id) in self.message_dict:
+            self.message_dict[str(message.channel.id)].append(f"{message.author.display_name}: {message_content}")
         else:
-            self.message_dict[message.channel.id] = [f"{message.author.display_name}: {message_content}"]
+            self.message_dict[str(message.channel.id)] = [f"{message.author.display_name}: {message_content}"]
 
 
 
     # function that will send the list of messages for a channel to the logic cog
     async def send_message_list(self, channel_id):
         # get the list of messages for the channel
-        message_list = self.message_dict[channel_id]
+        message_list = self.message_dict[str(channel_id)]
         print(f"message_list: {message_list}")
         # join message list by \n
         message_list = "\n".join(message_list)
@@ -54,21 +55,28 @@ class ListenerCog(commands.Cog, name="listener"):
         return response
 
     
-    # a function that will set a timer for one minute then send_message_list if self.bot_sent_last_message is True
     async def set_timer(self, channel_id):
-        # start the timer
-        print(f"Message wait Timer started for channel {channel_id}")
-        await asyncio.sleep(WAITTIMER)
-        print(f"Message wait Timer ended for channel {channel_id}")
-        # if self.bot_sent_last_message is True, send_message_list
-        if not self.bot_sent_last_message:
-            response = await self.send_message_list(channel_id)
-            # if response is True, set self.bot_sent_last_message to False
-            if response:
-                self.bot_sent_last_message = False
-            
+        if not self.timer_running.get(channel_id, False):
+            self.timer_running[channel_id] = True
 
+            if not self.bot_sent_last_message.get(channel_id, False):
+                print(f"Message wait Timer started for channel {channel_id}")
+                await asyncio.sleep(WAITTIMER)
+                print(f"Message wait Timer ended for channel {channel_id}")
 
+                # Check if self.bot_sent_last_message is still False for the channel
+                if not self.bot_sent_last_message.get(channel_id, False):
+                    bot_turn = await self.send_message_list(channel_id)
+                    if bot_turn or len(self.bot.chat_participants[str(channel_id)]) == 2:
+                        channel = self.bot.get_channel(channel_id)
+                        async with channel.typing():
+                            message = await self.bot.get_cog("chatbot").force_generate_message(str(channel_id))
+                            response_obj = await channel.send(message)
+                            self.bot_sent_last_message[str(channel_id)] = True
+                            await log_message(response_obj)
+                            bot_turn = False
+
+            self.timer_running[channel_id] = False
 
 
     class ListenOnlyModeSelect(discord.ui.Select):
@@ -94,10 +102,10 @@ class ListenerCog(commands.Cog, name="listener"):
             channel_id = interaction.channel_id
             if channel_id in self.parent.bot.channel_list:
                 if self.values[0] == "Enable":
-                    self.parent.listen_only_mode[channel_id] = True
+                    self.parent.listen_only_mode[str(channel_id)] = True
                     await interaction.response.send_message(embed=embedder(f".Listen-only mode is now set to {self.parent.listen_only_mode[channel_id]}"), delete_after=5)
                 else:
-                    self.parent.listen_only_mode[channel_id] = False
+                    self.parent.listen_only_mode[str(channel_id)] = False
                     await interaction.response.send_message(embed=embedder(f".Listen-only mode is now set to {self.parent.listen_only_mode[channel_id]}"), delete_after=5)
             else:
                 await interaction.response.send_message(embed=embedder(f".Listen-only mode is not enabled in this channel"), delete_after=5)
@@ -136,21 +144,21 @@ class ListenerCog(commands.Cog, name="listener"):
 
         if mode == 'nr':
             await self.bot.get_cog("chatbot").chat_command_nr(message.author.display_name, message.channel.id, image_response)
-            self.bot_sent_last_message = False
+            self.bot_sent_last_message[str(message.channel.id)] = False
             await self.add_message_to_dict(message, image_response)
             await self.set_timer(message.channel.id)
         else:
-            response = await self.bot.get_cog("chatbot").chat_command(message, image_response)
-            await self.add_message_to_dict(message, image_response)
-            if response:
-                async with message.channel.typing():
+            async with message.channel.typing():
+                response = await self.bot.get_cog("chatbot").chat_command(message, image_response)
+                await self.add_message_to_dict(message, image_response)
+                if response:
                     # If the response is more than 2000 characters, split it
                     chunks = [response[i:i+1998] for i in range(0, len(response), 1998)]
                     for chunk in chunks:
                         print(chunk)
                         response_obj = await message.channel.send(chunk)
                         await self.add_message_to_dict(response_obj, response_obj.clean_content)
-                        self.bot_sent_last_message = True
+                        self.bot_sent_last_message[str(message.channel.id)] = True
                         await log_message(response_obj)
 
 
@@ -161,31 +169,20 @@ class ListenerCog(commands.Cog, name="listener"):
         await log_message(message)
         if mode == 'nr':
             await self.bot.get_cog("chatbot").chat_command_nr(message.author.display_name, message.channel.id, message.clean_content)
-            self.bot_sent_last_message = False
+            self.bot_sent_last_message[str(message.channel.id)] = False
             await self.add_message_to_dict(message, message.clean_content)
             await self.set_timer(message.channel.id)
         else:
             response = await self.bot.get_cog("chatbot").chat_command(message, message.clean_content)
             await self.add_message_to_dict(message, message.clean_content)
             async with message.channel.typing():
-                retry_count = 0
-                max_retries = 3
-                while "<nooutput>" in response and retry_count < max_retries:
-                    new_response = self.chatbot.llm(self.prompt["prompt"])
-                    retry_count += 1
-                    print("<nooutput> in response, trying again.")
-                    if new_response:
-                        response = new_response
-                    else:
-                        break
-
                 # If the response is more than 2000 characters, split it
                 chunks = [response[i:i+1998] for i in range(0, len(response), 1998)]
                 for chunk in chunks:
                     print(chunk)
                     response_obj = await message.channel.send(chunk)
                     await self.add_message_to_dict(response_obj, response_obj.clean_content)
-                    self.bot_sent_last_message = True
+                    self.bot_sent_last_message[str(message.channel.id)] = True
                     await log_message(response_obj)
 
 
@@ -195,13 +192,13 @@ class ListenerCog(commands.Cog, name="listener"):
     async def set_listen_only_mode_timer(self, channel_id):
         
         # Start the timer
-        self.listen_only_mode[channel_id] = True
+        self.listen_only_mode[str(channel_id)] = True
         print(f"Message Sleep Timer started for channel {channel_id}")
         await asyncio.sleep(SLEEPTIMER)  # Wait for 10 seconds
         print(f"Message Sleep Timer ended for channel {channel_id}")
 
         # Reset the listen-only mode
-        self.listen_only_mode[channel_id] = False
+        self.listen_only_mode[str(channel_id)] = False
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -232,7 +229,7 @@ class ListenerCog(commands.Cog, name="listener"):
         directed_at_bot = (is_reply_to_bot or mentions_bot or contains_bot_name) and not is_false_positive
 
         # Determine message type
-        message_type = 'nr' if self.listen_only_mode[message.channel.id] or not directed_at_bot else None
+        message_type = 'nr' if self.listen_only_mode[str(message.channel.id)] or not directed_at_bot else None
 
         # Handle the message appropriately
         if await self.has_image_attachment(message):
@@ -241,8 +238,8 @@ class ListenerCog(commands.Cog, name="listener"):
             await self.handle_text_message(message, message_type)
 
         # Reset the cooldown timer for the channel if the message is directed at the bot and not in cooldown
-        if directed_at_bot and not self.listen_only_mode[message.channel.id]:
-            asyncio.create_task(self.set_listen_only_mode_timer(message.channel.id))
+        if directed_at_bot and not self.listen_only_mode[str(message.channel.id)]:
+            asyncio.create_task(self.set_listen_only_mode_timer(str(message.channel.id)))
 
 
 async def setup(bot):

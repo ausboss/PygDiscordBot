@@ -5,7 +5,7 @@ from discord.ext import commands
 import os
 from langchain.tools import DuckDuckGoSearchRun
 from dotenv import load_dotenv
-
+from helpers.constants import BOTNAME
 from langchain.chains import LLMMathChain
 from langchain.agents import Tool
 from langchain.agents import load_tools
@@ -30,6 +30,7 @@ class AgentCommands(commands.Cog, name="agent_commands"):
     def __init__(self, bot):
         self.bot = bot
         self.llm = self.bot.llm
+        self.bot
 
         self.search = DuckDuckGoSearchRun()  # DuckDuckGo tool
 
@@ -168,52 +169,6 @@ class AgentCommands(commands.Cog, name="agent_commands"):
         response = await self._execute_search(interaction.user.display_name, interaction.channel.id, prompt)
 
         await interaction.channel.send(response)
-    # # this command will take a message and return the result of the calculation
-    # @commands.command(name="searchwebmessage")
-    # async def execute_search_message(self, message, message_content) -> None:
-    #     tool = "Web Search"
-    #     results = self.search(message_content)
-    #     straight_response = await self.bot.get_cog("chatbot").instruct_input(message_content, results)
-
-    #     response = await self.bot.get_cog("chatbot").agent_command(
-    #         message.author.display_name,
-    #         message.channel.id,
-    #         message_content,
-    #         tool,
-    #         straight_response
-    #     )
-
-    #     return response
-
-    # @commands.command(name="searchwebinteraction")
-    # async def execute_search_interaction(self, interaction: discord.Interaction, prompt: str):
-    #     tool = "Web Search"
-    #     results = self.search(prompt)
-    #     straight_response = await self.bot.get_cog("chatbot").instruct_input(prompt, results)
-
-    #     response = await self.bot.get_cog("chatbot").agent_command(
-    #         interaction.user.display_name,
-    #         interaction.channel.id,
-    #         prompt,
-    #         tool,
-    #         straight_response
-    #     )
-
-    #     return response
-
-    # @app_commands.command(name="searchwebcommand", description="Query Web")
-    # async def search_web(self, interaction: discord.Interaction, prompt: str):
-    #     await interaction.response.send_message(
-    #         embed=discord.Embed(
-    #             title=f"{interaction.user.display_name} used Search Web",
-    #             description=f"Instructions: {prompt}\nGenerating response\nPlease wait..",
-    #             color=0x9C84EF,
-    #         )
-    #     )
-
-    #     response = await self.execute_search(interaction, prompt)
-
-    #     await interaction.channel.send(response)
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -242,27 +197,28 @@ Below is an instruction that describes a task. Write a response that appropriate
         }
         channel_id = interaction.channel.id
 
-        await self.bot.get_cog("chatbot").chat_command_nr(interaction.user.display_name, str(channel_id), prompt)
+        
 
         async with interaction.channel.typing():
-            response = self.chatbot.llm(self.prompt["prompt"])
-            retry_count = 0
-            max_retries = 3
-            while "<nooutput>" in response and retry_count < max_retries:
-                response = self.chatbot.llm(self.prompt["prompt"])
-                retry_count += 1
-                print("<nooutput> in response, trying again.")
+            response = await self.bot.get_cog("chatbot").instruct(prompt)
 
-        # If the response is more than 2000 characters, split it
-        chunks = [response[i:i + 1998] for i in range(0, len(response), 1998)]
-        for chunk in chunks:
-            print(chunk)
-            await interaction.channel.send(response)
+            # Check if response is not None
+            if response:
+                await self.bot.get_cog("chatbot").chat_command_nr(interaction.user.display_name, str(channel_id), prompt)
 
-        # check if the request was successful
-        await self.chatbot.add_history(
-            self.chatbot.char_name, str(channel_id), response
-        )
+                # If the response is more than 2000 characters, split it
+                chunks = [response[i:i + 1998] for i in range(0, len(response), 1998)]
+                for chunk in chunks:
+                    print(chunk)
+                    response_obj = await interaction.channel.send(response)
+                    await self.bot.get_cog("chatbot").chat_command_nr(BOTNAME, str(response_obj.channel.id), response_obj.clean_content)
+
+                # check if the request was successful
+            else:
+                print("No response received from the chatbot")
+                # You can also send a message to the channel to notify the user that there was no response from the bot.
+                # await interaction.channel.send("No response received from the bot")
+
 
 
 async def setup(bot):

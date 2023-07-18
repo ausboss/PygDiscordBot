@@ -38,6 +38,7 @@ class Chatbot:
         self.char_name = BOTNAME
         self.memory = CustomBufferWindowMemory(k=K, ai_prefix=self.char_name)
         self.chat_participants = {}
+        self.bot.chat_participants = self.chat_participants
         self.history = "[Beginning of Conversation]"
         self.llm = self.bot.llm
         self.template = MAINTEMPLATE
@@ -98,7 +99,7 @@ class Chatbot:
         memory = await self.get_memory_for_channel(str(channel_id))
 
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, self.char_name)
-        chat_participants = await self.get_chat_participants_for_channel(channel_id, self.char_name)
+        await self.get_chat_participants_for_channel(channel_id, self.char_name)
 
         history = memory.load_memory_variables('inputs')
         # Split the history string into lines, each line is a separate message
@@ -118,6 +119,7 @@ This is how {self.char_name} should talk
 {self.char_name}: 😂 Btw, found this hilar meme! 🤣🔥 Y'all gonna lose it! 🤪✌️
 {self.char_name}: OMG! Raiden in Metal Gear Rising: Revengeance is, like, totally bananas! 🤪🎮⚔️ Whoosh, swingin' that high-frequency blade like a rockstar! 🎸💥 And, 'Rules of Nature'? Total eargasm, peeps! 🎵🎧🔥 Let's ROCK!!
 {self.char_name}: I'm sliding over cars while I shooooot🚗💨🏀! I think that I'm Tom Cruise🤵, but bitch I'm Bobby with the tool 💥🔫!!🤪
+DO NOT use these examples in the Response.
 
 Then the discord chat with {self.char_name} begins.
 {messages}
@@ -166,6 +168,7 @@ Then the discord chat with {self.char_name} begins.
     async def add_history(self, name, channel_id, message_content) -> None:
         # get the memory for the channel
         memory = await self.get_memory_for_channel(str(channel_id))
+        await self.get_chat_participants_for_channel(channel_id, name)
 
         formatted_message = f"{name}: {message_content}"
 
@@ -312,6 +315,12 @@ class ChatbotCog(commands.Cog, name="chatbot"):
     async def chat_command_nr(self, name, channel_id, message_content) -> None:
         await self.chatbot.add_history(name, str(channel_id), message_content)
         return None
+
+    # force generate response
+    @commands.command(name="forcegeneratemessage")
+    async def force_generate_message(self, channel_id) -> None:
+        response = await self.chatbot.force_generate_response(channel_id)
+        return response
 
     @app_commands.command(
         name="forcegenerate", description="Force the bot to say something"
