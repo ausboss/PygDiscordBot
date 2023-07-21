@@ -188,8 +188,27 @@ class RentryCog(commands.Cog, name="rentry_cog"):
         'Select a rentry',
         view=view)
 
+    # takes the ending url of a rentry and a string then appends the string to the rentry
+    @app_commands.command(name="appendrentry", description="append to a rentry")
+    async def append_rentry(self, interaction: discord.Interaction, url: str, string: str):
+        await interaction.response.defer()
+        name = interaction.user.display_name
+        full_url = f"https://rentry.co/{url}"
+        contents = view(full_url)
+        message = contents
+        edit_code = await self.get_edit_code(url)
+        rentry_dict = await self.add_rentry_dict(url, edit_code, message)
+        await interaction.followup.send(f'{name} used `Append Rentry`\n```Rentry: {url}\n\n{rentry_dict[url][1]}\n{string}```')
+        append(url, edit_code, string)
+        channel_id = self.bot.get_channel(interaction.channel_id)
+        # fake_system_message = f"{name} asked you to add `{string}` to rentry: {url}\nResult: Success\n```Rentry: {url}\n\n{rentry_dict[url][1]}\n{string}```"
+        fake_system_message = f"{name} asked you to add `{string}` to rentry: {url} - Result: Successfully appended to rentry"
+
+        followup = await self.bot.get_cog("chatbot").chat_command("System", str(interaction.channel_id), fake_system_message)
+        await channel_id.send(followup)
+
     @app_commands.command(name="createrentry", description="create a rentry")
-    async def create_rentry(self, interaction: discord.Interaction, string: str):
+    async def create_rentry(self, interaction: discord.Interaction, to_add: str, description: str):
         await interaction.response.defer()
         name = interaction.user.display_name
 
@@ -202,7 +221,7 @@ class RentryCog(commands.Cog, name="rentry_cog"):
         # Create a payload with the CSRF token and the text
         payload = {
             'csrfmiddlewaretoken': csrftoken,
-            'text': string
+            'text': to_add
         }
 
         # Post the request to create a new rentry
@@ -216,14 +235,14 @@ class RentryCog(commands.Cog, name="rentry_cog"):
         # Save the new rentry link and edit_code to the csv file
         with open('notebook_links.csv', 'a', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow([url, edit_code])
+            writer.writerow([url, edit_code, description])
 
         # Send a follow-up message to the user
-        await interaction.followup.send(f'{name} created a new Rentry: {url} with contents:\n```{string}```')
+        await interaction.followup.send(f'{name} created a new Rentry: {url} with contents:\n```{to_add}```')
 
         # Send a follow-up message to the chatbot
         channel_id = self.bot.get_channel(interaction.channel_id)
-        fake_system_message = f"{name} created a new rentry: {url} with contents: `{string}` - Result: Successfully created rentry"
+        fake_system_message = f"{name} created a new rentry: {url} with contents: `{to_add}` - Result: Successfully created rentry {description}"
         followup = await self.bot.get_cog("chatbot").chat_command("System", str(interaction.channel_id), fake_system_message)
         await channel_id.send(followup)
 

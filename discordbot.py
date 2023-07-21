@@ -15,7 +15,7 @@ import aiosqlite
 from helpers import db_manager
 
 from langchain.chat_models import ChatOpenAI
-from langchain.llms import KoboldApiLLM
+# from langchain.llms import KoboldApiLLM
 from koboldllm import KoboldApiLLM2
 from langchain.llms import TextGen
 

@@ -186,15 +186,6 @@ class AgentCommands(commands.Cog, name="agent_commands"):
             )
         )
 
-        # if user
-        self.prompt = {
-            "prompt": f"""
-Below is an instruction that describes a task. Write a response that appropriately completes the request.
-### Instruction:\{prompt}\n
-
-### Response:
-"""
-        }
         channel_id = interaction.channel.id
 
         
@@ -205,21 +196,8 @@ Below is an instruction that describes a task. Write a response that appropriate
             # Check if response is not None
             if response:
                 await self.bot.get_cog("chatbot").chat_command_nr(interaction.user.display_name, str(channel_id), prompt)
-
-                # If the response is more than 2000 characters, split it
-                chunks = [response[i:i + 1998] for i in range(0, len(response), 1998)]
-                for chunk in chunks:
-                    print(chunk)
-                    
-                    response_obj = await interaction.channel.send(updated_string)
-                    await self.bot.get_cog("chatbot").chat_command_nr(BOTNAME, str(response_obj.channel.id), updated_string)
-
-                # check if the request was successful
-            else:
-                print("No response received from the chatbot")
-                # You can also send a message to the channel to notify the user that there was no response from the bot.
-                # await interaction.channel.send("No response received from the bot")
-
+                response_obj = await interaction.channel.send(updated_string)
+                await self.bot.get_cog("chatbot").chat_command_nr(BOTNAME, str(response_obj.channel.id), updated_string)
 
 
 async def setup(bot):

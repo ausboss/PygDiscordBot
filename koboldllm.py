@@ -60,14 +60,14 @@ class KoboldApiLLM2(LLM):
     minimum: 1
     """
 
-    max_length: Optional[int] = 400
+    max_length: Optional[int] = 512
     """Number of tokens to generate.
     
     maximum: 512
     minimum: 1
     """
 
-    rep_pen: Optional[float] = 1.21
+    rep_pen: Optional[float] = 1.18
     """Base repetition penalty value.
     
     minimum: 1
@@ -79,7 +79,7 @@ class KoboldApiLLM2(LLM):
     minimum: 0
     """
 
-    rep_pen_slope: Optional[float] = 0.9
+    rep_pen_slope: Optional[float] = 0.7
     """Repetition penalty slope.
     
     minimum: 0
@@ -91,27 +91,27 @@ class KoboldApiLLM2(LLM):
     exclusiveMinimum: 0
     """
 
-    tfs: Optional[float] = 0.9
+    tfs: Optional[float] = 1
     """Tail free sampling value.
     
     maximum: 1
     minimum: 0
     """
 
-    top_a: Optional[float] = 0.9
+    top_a: Optional[float] = 0.56
     """Top-a sampling value.
     
     minimum: 0
     """
 
-    top_p: Optional[float] = 0.95
+    top_p: Optional[float] = 0.9
     """Top-p sampling value.
     
     maximum: 1
     minimum: 0
     """
 
-    top_k: Optional[int] = 0
+    top_k: Optional[int] = 78
     """Top-k sampling value.
     
     minimum: 0
@@ -227,7 +227,7 @@ class KoboldApiLLM2(LLM):
 
         if response.status_code == 200:
             # Process the successful response
-            text = response.json()["results"][0]["text"]
+            text = response.json()["results"][0]["text"].replace("'''", "```")
 
             # If stop sequences are provided, remove them from the text
             if stop is not None:
