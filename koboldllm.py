@@ -67,7 +67,7 @@ class KoboldApiLLM2(LLM):
     minimum: 1
     """
 
-    rep_pen: Optional[float] = 1.10
+    rep_pen: Optional[float] = 1.21
     """Base repetition penalty value.
     
     minimum: 1
@@ -79,13 +79,13 @@ class KoboldApiLLM2(LLM):
     minimum: 0
     """
 
-    rep_pen_slope: Optional[float] = 0.7
+    rep_pen_slope: Optional[float] = 0.9
     """Repetition penalty slope.
     
     minimum: 0
     """
 
-    temperature: Optional[float] = 0.6
+    temperature: Optional[float] = 0.7
     """Temperature value.
     
     exclusiveMinimum: 0

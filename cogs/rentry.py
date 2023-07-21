@@ -41,13 +41,21 @@ class UrllibClient:
         response.data = response.read().decode('utf-8')
         return response  # Return the response object directly
 
-def view(url):
-    client = UrllibClient()
-    response = client.get(url + '/raw').data
-    soup = BeautifulSoup(response, 'html.parser')
-    # print(soup.prettify())
-    contents = soup.get_text()
-    return contents
+
+def edit(url, edit_code, text):
+    client, cookie = UrllibClient(), SimpleCookie()
+
+    cookie.load(vars(client.get('https://rentry.co'))['headers']['Set-Cookie'])
+    csrftoken = cookie['csrftoken'].value
+
+    payload = {
+        'csrfmiddlewaretoken': csrftoken,
+        'edit_code': edit_code,
+        'text': text
+    }
+
+    return json_loads(client.post('https://rentry.co/api/edit/{}'.format(url), payload, headers=_headers).data)
+
 
 def append(url, edit_code, text):
     client, cookie = UrllibClient(), SimpleCookie()
@@ -70,107 +78,6 @@ def append(url, edit_code, text):
 
     return json_loads(client.post('https://rentry.co/api/edit/{}'.format(url), payload, headers=_headers).data)
 
-class AiohttpClient:
-    """Simple HTTP Session Client, keeps cookies."""
-
-    def __init__(self):
-        self.session = aiohttp.ClientSession()
-
-    async def get(self, url, headers={}):
-        async with self.session.get(url, headers=headers) as response:
-            response.status_code = response.status
-            response.data = await response.text()
-            return response
-
-
-    async def post(self, url, data=None, headers={}):
-        async with self.session.post(url, data=data, headers=headers) as response:
-            response.status_code = response.status
-            response.data = await response.text()
-            return response
-
-    async def close(self):
-        await self.session.close()
-
-
-async def new(url, edit_code, text):
-    client = AiohttpClient()
-
-    response = await client.get('https://rentry.co')
-    csrftoken = response.headers.get('Set-Cookie', '').split(';')[0].split('=')[1]
-
-    payload = {
-        'csrfmiddlewaretoken': csrftoken,
-        'url': url,
-        'edit_code': edit_code,
-        'text': text
-    }
-
-    result = await client.post('https://rentry.co/api/new', payload, headers=_headers)
-    await client.close()
-    return json_loads(result.data)
-
-
-async def get_rentry_link(text):
-    url, edit_code = '', ''
-    response = await new(url, edit_code, text)
-    if response['status'] != '200':
-        print('error: {}'.format(response['content']))
-        try:
-            for i in response['errors'].split('.'):
-                i and print(i)
-            sys.exit(1)
-        except:
-            sys.exit(1)
-    else:
-        pastebin_link = response['url']
-        print('Url:        {}\nEdit code:  {}'.format(response['url'], response['edit_code']))
-
-        # write the url and edit code to a csv file
-        with open('notebook_links.csv', 'a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow([response['url'], response['edit_code']])
-
-        return pastebin_link
-
-
-async def edit(url, edit_code, text):
-    client, cookie = AiohttpClient(), SimpleCookie()
-
-    cookie.load(vars(await client.get('https://rentry.co'))['headers']['Set-Cookie'])
-    csrftoken = cookie['csrftoken'].value
-
-    payload = {
-        'csrfmiddlewaretoken': csrftoken,
-        'edit_code': edit_code,
-        'text': text
-    }
-
-    return json_loads(await client.post('https://rentry.co/api/edit/{}'.format(url), payload, headers=_headers).data)
-
-
-
-# async def append(url, edit_code, text):
-#     client, cookie = AiohttpClient(), SimpleCookie()
-
-#     cookie.load(vars(await client.get('https://rentry.co'))['headers']['Set-Cookie'])
-#     csrftoken = cookie['csrftoken'].value
-
-#     # Retrieve existing text
-#     response = await client.get('https://rentry.co/' + url + '/raw')
-#     existing_text = response.data
-
-#     # Concatenate existing text with new text
-#     updated_text = existing_text + '\n' + text
-
-#     payload = {
-#         'csrfmiddlewaretoken': csrftoken,
-#         'edit_code': edit_code,
-#         'text': updated_text
-#     }
-
-#     return json_loads(await client.post('https://rentry.co/api/edit/{}'.format(url), payload, headers=_headers).data)
-
 
 def read_csv():
     # if FileNotFoundError make the file with url, edit_code at the top
@@ -184,20 +91,21 @@ def read_csv():
             writer = csv.writer(file)
             writer.writerow(['url', 'edit_code'])
         entries = []
-
+    
     return entries
 
 
-
-async def viewa(url):
-    client = AiohttpClient()
-    response = (await client.get(url + '/raw')).data
+def view(url):
+    client = UrllibClient()
+    response = client.get(url + '/raw').data
     soup = BeautifulSoup(response, 'html.parser')
     # print(soup.prettify())
     contents = soup.get_text()
     return contents
 
+
 class RentryCog(commands.Cog, name="rentry_cog"):
+
     def __init__(self, bot):
         self.bot = bot
         self.rentry_links = read_csv()
@@ -208,7 +116,6 @@ class RentryCog(commands.Cog, name="rentry_cog"):
 
     def cog_unload(self):  # Add this method to close the AiohttpClient session
         asyncio.create_task(self.client.close())
-
 
     # this function takes a rentry url, edit_code, and text and adds them to the self.rentry_dict. the rentry url as the key and the value is a list of the edit_code and the contents of the rentry
     async def add_rentry_dict(self, url, edit_code, text):
@@ -233,20 +140,21 @@ class RentryCog(commands.Cog, name="rentry_cog"):
     
     # Create a select menu for the rentry links
     class RentrySelect(discord.ui.Select):
+
         def __init__(self, parent, bot):
             self.parent = parent
             self.RentryCog = RentryCog(self.parent.bot)  # Add this line
             self.bot = bot  # Add this line
 
             options = [
-                discord.SelectOption(label=f"url: {rentry[0].split('https://rentry.co/')[1]}", description=f"edit code:{rentry[1]}") 
+                discord.SelectOption(label=f"url: {rentry[0].split('https://rentry.co/')[1]}", description=f"{rentry[2]}") 
                 for rentry in self.parent.rentry_links
             ]
             super().__init__(
                 placeholder="Select a rentry",
                 options=options
             )
-    
+        
         async def callback(self, interaction: discord.Interaction):
             url_part = self.values[0].split(' ')[1]
             full_url = f"https://rentry.co/{url_part}"
@@ -265,12 +173,12 @@ class RentryCog(commands.Cog, name="rentry_cog"):
 
     # Create a view for the rentry links
     class RentryView(discord.ui.View):
+
         def __init__(self, parent):
             self.parent = parent
             super().__init__()
            
             self.add_item(RentryCog.RentrySelect(parent, parent.bot))  # Pass the bot object here
-
 
     # shows a menu of rentry links and then displays the selected rentry contents
     @app_commands.command(name="viewrentry", description="View a rentry")
@@ -280,26 +188,45 @@ class RentryCog(commands.Cog, name="rentry_cog"):
         'Select a rentry',
         view=view)
 
-    # takes the ending url of a rentry and a string then appends the string to the rentry
-    @app_commands.command(name="appendrentry", description="append to a rentry")
-    async def append_rentry(self, interaction: discord.Interaction, url: str, string: str):
+    @app_commands.command(name="createrentry", description="create a rentry")
+    async def create_rentry(self, interaction: discord.Interaction, string: str):
         await interaction.response.defer()
         name = interaction.user.display_name
-        full_url = f"https://rentry.co/{url}"
-        contents = view(full_url)
-        message = contents
-        edit_code = await self.get_edit_code(url)
-        rentry_dict = await self.add_rentry_dict(url, edit_code, message)
-        await interaction.followup.send(f'{name} used `Append Rentry`\n```Rentry: {url}\n\n{rentry_dict[url][1]}\n{string}```')
-        append(url, edit_code, string)
-        channel_id = self.bot.get_channel(interaction.channel_id)
-        # fake_system_message = f"{name} asked you to add `{string}` to rentry: {url}\nResult: Success\n```Rentry: {url}\n\n{rentry_dict[url][1]}\n{string}```"
-        fake_system_message = f"{name} asked you to add `{string}` to rentry: {url} - Result: Successfully appended to rentry"
 
+        # Initialize an UrllibClient and a SimpleCookie
+        client, cookie = UrllibClient(), SimpleCookie()
+        # Load the cookies from the client session
+        cookie.load(vars(client.get('https://rentry.co'))['headers']['Set-Cookie'])
+        csrftoken = cookie['csrftoken'].value
+
+        # Create a payload with the CSRF token and the text
+        payload = {
+            'csrfmiddlewaretoken': csrftoken,
+            'text': string
+        }
+
+        # Post the request to create a new rentry
+        response = client.post('https://rentry.co/api/new', payload, headers=_headers)
+
+        # Extract url and edit_code from the response data
+        response_data = json_loads(response.data)
+        url = response_data['url']
+        edit_code = response_data['edit_code']
+
+        # Save the new rentry link and edit_code to the csv file
+        with open('notebook_links.csv', 'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([url, edit_code])
+
+        # Send a follow-up message to the user
+        await interaction.followup.send(f'{name} created a new Rentry: {url} with contents:\n```{string}```')
+
+        # Send a follow-up message to the chatbot
+        channel_id = self.bot.get_channel(interaction.channel_id)
+        fake_system_message = f"{name} created a new rentry: {url} with contents: `{string}` - Result: Successfully created rentry"
         followup = await self.bot.get_cog("chatbot").chat_command("System", str(interaction.channel_id), fake_system_message)
         await channel_id.send(followup)
-        
 
- 
+
 async def setup(bot):
     await bot.add_cog(RentryCog(bot))

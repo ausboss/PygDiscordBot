@@ -59,7 +59,7 @@ bot.llm = ""
 if bot.llm_name == 'kobold':
     bot.llm = KoboldApiLLM2(endpoint=bot.endpoint)
 elif bot.llm_name == 'ooba':
-    bot.llm = TextGen(model_url=bot.endpoint, min_length=10, max_new_tokens=1500)
+    bot.llm = TextGen(model_url=bot.endpoint)
 elif bot.llm_name == 'openai':
     bot.llm = ChatOpenAI(model_name="gpt-4", temperature=0.7)
 

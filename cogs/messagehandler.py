@@ -8,7 +8,7 @@ from helpers.constants import ALIASES
 
 from helpers.db_manager import log_message
 
-SLEEPTIMER = 5
+SLEEPTIMER = 3
 WAITTIMER = 45
 
 def embedder(msg):
