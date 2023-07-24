@@ -1,21 +1,15 @@
-[2023-07-18 15:32:07] [INFO    ] discord_bot: Endpoint: https://shareholders-barnes-pub-talking.trycloudflare.com/
-[2023-07-18 15:32:14] [INFO    ] discord_bot: Agent Commands cog loaded.
-[2023-07-18 15:32:14] [INFO    ] discord_bot: Dev Commands cog loaded.
-[2023-07-18 15:32:14] [INFO    ] discord_bot: Setting up database...
-[2023-07-18 15:32:14] [INFO    ] discord_bot: Logged in as Tensor
-[2023-07-18 15:32:14] [INFO    ] discord_bot: discord.py API version: 2.3.1
-[2023-07-18 15:32:14] [INFO    ] discord_bot: Python version: 3.10.9
-[2023-07-18 15:32:14] [INFO    ] discord_bot: Running on: Windows 10 (nt)
-[2023-07-18 15:32:14] [INFO    ] discord_bot: -------------------
-[2023-07-18 15:32:14] [INFO    ] discord_bot: Tensor has connected to:
-[2023-07-18 15:32:14] [INFO    ] discord_bot: Nous Research \ bots
-[2023-07-18 15:32:14] [INFO    ] discord_bot: A.I. Nexus \ testing
-[2023-07-18 15:32:14] [INFO    ] discord_bot: TensorAGI \ python-bot
-[2023-07-18 15:32:14] [INFO    ] discord_bot: A.I. Nexus \ room1
-[2023-07-18 15:32:14] [INFO    ] discord_bot: A.I. Nexus \ room3
-[2023-07-18 15:32:14] [INFO    ] discord_bot: A.I. Nexus \ room2
-[2023-07-18 15:32:14] [INFO    ] discord_bot: FAM \ general
-[2023-07-18 15:32:14] [INFO    ] discord_bot: Ali's Bot Server \ tensor
-[2023-07-18 18:38:55] [INFO    ] discord_bot: Endpoint: https://shareholders-barnes-pub-talking.trycloudflare.com/
-[2023-07-18 21:50:51] [INFO    ] discord_bot: Endpoint: https://shareholders-barnes-pub-talking.trycloudflare.com/
-[2023-07-18 22:08:24] [INFO    ] discord_bot: Executed sync command in Nous Research (ID: 1053877538025386074) by ausboss (ID: 240893387874500608)
+[2023-07-23 19:30:49] [INFO    ] discord_bot: Endpoint: http://localhost:5000
+[2023-07-23 19:30:55] [INFO    ] discord_bot: Agent Commands cog loaded.
+[2023-07-23 19:30:55] [INFO    ] discord_bot: Dev Commands cog loaded.
+[2023-07-23 19:30:55] [INFO    ] discord_bot: Setting up database...
+[2023-07-23 19:30:55] [INFO    ] discord_bot: Logged in as Tensor
+[2023-07-23 19:30:55] [INFO    ] discord_bot: discord.py API version: 2.3.1
+[2023-07-23 19:30:55] [INFO    ] discord_bot: Python version: 3.10.10
+[2023-07-23 19:30:55] [INFO    ] discord_bot: Running on: Windows 10 (nt)
+[2023-07-23 19:30:55] [INFO    ] discord_bot: -------------------
+[2023-07-23 19:30:55] [INFO    ] discord_bot: Tensor has connected to:
+[2023-07-23 19:30:55] [INFO    ] discord_bot: A.I. Nexus \ testing
+[2023-07-23 19:30:55] [INFO    ] discord_bot: TensorAGI \ python-bot
+[2023-07-23 19:30:55] [INFO    ] discord_bot: FAM \ general
+[2023-07-23 19:30:55] [INFO    ] discord_bot: Nous Research \ bots
+[2023-07-23 19:33:00] [INFO    ] discord_bot: Endpoint: http://localhost:5000

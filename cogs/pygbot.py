@@ -12,7 +12,6 @@ from discord.ext.commands import Bot
 import chromadb
 from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
-from langchain.llms import KoboldApiLLM
 from langchain.llms import TextGen
 from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import messages_from_dict, messages_to_dict
@@ -165,7 +164,7 @@ Then the discord chat with {self.char_name} begins.
 {self.char_name}:'''
 
 
-        response_text = self.llm(template, stop=stop_sequence)
+        response_text = self.llm(template, stop=stop_sequence).lstrip()
 
         # response = await self.detect_and_replace_out(response_text["response"])
         await self.add_history(self.char_name, str(channel_id), response_text)
