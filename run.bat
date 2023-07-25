@@ -27,7 +27,7 @@ REM Load environment variables from .env file
 for /f "delims=" %%a in ('type .env') do set "%%a"
 
 REM Run the Python script with the environment variables as arguments
-python discordbot.py %DISCORD_BOT_TOKEN% %ENDPOINT% %CHANNEL_ID%
+python discordbot.py
 
 REM Deactivate the virtual environment
 call venv\Scripts\deactivate.bat

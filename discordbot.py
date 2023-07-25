@@ -11,7 +11,10 @@ import asyncio
 import shutil
 import sys
 import logging
+import requests
+from dotenv import load_dotenv
 
+<<<<<<< Updated upstream
 if __name__ == '__main__':
     if len(sys.argv) < 4:
         print('Usage: python discordbot.py <DISCORD_BOT_TOKEN> <ENDPOINT> <CHANNEL_ID>')
@@ -20,6 +23,14 @@ if __name__ == '__main__':
     ENDPOINT = sys.argv[2]
     CHANNEL_ID = sys.argv[3]
 # Access environment variables like this
+=======
+
+load_dotenv()
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+ENDPOINT = os.getenv("ENDPOINT")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
+CHAT_HISTORY_LINE_LIMIT = os.getenv("CHAT_HISTORY_LINE_LIMIT")
+>>>>>>> Stashed changes
 
 
 intents = discord.Intents.all()
@@ -30,15 +41,27 @@ if len(bot.endpoint.split("/api")) > 0:
 bot.chatlog_dir = "chatlog_dir"
 bot.endpoint_connected = False
 bot.channel_id = CHANNEL_ID
-bot.guild_ids = [int(x) for x in sys.argv[3].split(",")]
+bot.num_lines_to_keep = int(CHAT_HISTORY_LINE_LIMIT)
+bot.guild_ids = [int(x) for x in CHANNEL_ID.split(",")]
 bot.debug = True
 bot.char_name = ""
+<<<<<<< Updated upstream
 characters_folder = 'Characters'
 cards_folder = 'Cards'
+=======
+bot.endpoint_type = ""
+characters_folder = "Characters"
+cards_folder = "Cards"
+>>>>>>> Stashed changes
 characters = []
 
 def upload_character(json_file, img, tavern=False):
+<<<<<<< Updated upstream
     json_file = json_file if type(json_file) == str else json_file.decode('utf-8')
+=======
+    json_file = json_file if type(
+        json_file) == str else json_file.decode("utf-8")
+>>>>>>> Stashed changes
     data = json.loads(json_file)
     outfile_name = data["char_name"]
     i = 1
@@ -73,10 +96,21 @@ try:
         if filename.endswith('.png'):
             with open(os.path.join(cards_folder, filename), 'rb') as read_file:
                 img = read_file.read()
+<<<<<<< Updated upstream
                 name1 = 'User'
                 name2 = 'Character'
                 tavern_character_data = upload_tavern_character(img, name1, name2)
             with open(os.path.join(characters_folder, tavern_character_data + '.json')) as read_file:
+=======
+                name1 = "User"
+                name2 = "Character"
+                tavern_character_data = upload_tavern_character(
+                    img, name1, name2)
+            with open(
+                os.path.join(characters_folder,
+                             tavern_character_data + ".json")
+            ) as read_file:
+>>>>>>> Stashed changes
                 character_data = json.load(read_file)
                 # characters.append(character_data)
             read_file.close()
@@ -105,8 +139,14 @@ for filename in os.listdir(characters_folder):
 
 # Character selection
 # Check if chardata.json exists
+<<<<<<< Updated upstream
 if os.path.exists('chardata.json'):
     with open("chardata.json", encoding='utf-8') as read_file:
+=======
+if os.path.exists("chardata.json"):
+
+    with open("chardata.json", encoding="utf-8") as read_file:
+>>>>>>> Stashed changes
         character_data = json.load(read_file)
     # Prompt the user to use the same character
     print(f"Last Character used: {character_data['char_name']}")
@@ -129,7 +169,8 @@ if answer.lower() == "n":
             if selected_char < 0 or selected_char >= len(characters):
                 raise ValueError
         except ValueError:
-            print("Invalid input. Please enter a number between 1 and", len(characters))
+            print("Invalid input. Please enter a number between 1 and",
+                  len(characters))
             selected_char = None
     data = characters[selected_char]
     update_name = None
@@ -145,8 +186,23 @@ if answer.lower() == "n":
 else:
     update_name = "n"
 
+try:
+    response = requests.get("http://127.0.0.1:7861/")
+    result = response.text[:200]
+    if response.status_code == 200:
+        # check the type of endpoint based on the result of the first 200 characters retunred in the text. if the result starts with <!DOCTYPE html> then its oobabooga other wise its koboldAI
+        result = response.text[:200]
+        if result.startswith("<!DOCTYPE html>"):
+            bot.endpoint_type = "o"
+        else:
+            bot.endpoint_type = "k"
+except:
+    print("there was an error with the endpoint")
+
 
 # on ready event that will update the character name and picture if you chose yes
+
+
 @bot.event
 async def on_ready():
     if update_name.lower() == "y":
@@ -180,7 +236,8 @@ async def on_ready():
                 channel_name = channel.name
                 print(f"{guild.name} \ {channel_name}")
             else:
-                print(f"Channel with ID {bot.channel_id} is not a text channel")
+                print(
+                    f"Channel with ID {bot.channel_id} is not a text channel")
         except AttributeError:
             print(
                 "\n\n\n\nERROR: Unable to retrieve channel from .env \nPlease make sure you're using a valid channel ID, not a server ID.")

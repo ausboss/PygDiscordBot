@@ -24,7 +24,7 @@ if %errorlevel% neq 0 (
 )
 
 rem Create the virtual environment
-virtualenv venv
+python -m venv venv
 
 
 

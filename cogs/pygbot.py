@@ -5,6 +5,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import os
+<<<<<<< Updated upstream
 
 # configuration settings for the api
 model_config = {
@@ -23,6 +24,21 @@ model_config = {
     "typical": 1,
     "sampler_order": [6, 0, 1, 2, 3, 4, 5]
 }
+=======
+from langchain.llms import KoboldApiLLM, TextGen
+from langchain.prompts.prompt import PromptTemplate
+from helpers.custom_memory import *
+from dotenv import load_dotenv
+
+# load environment STOP_SEQUENCES variables and split them in to a list by comma
+load_dotenv()
+CHAT_HISTORY_LINE_LIMIT = int(os.getenv("CHAT_HISTORY_LINE_LIMIT"))
+STOP_SEQUENCES = os.getenv("STOP_SEQUENCES")
+STOP_SEQUENCES = STOP_SEQUENCES.split(",")
+
+
+#import p
+>>>>>>> Stashed changes
 
 def embedder(msg):
     embed = discord.Embed(
@@ -32,10 +48,17 @@ def embedder(msg):
     return embed
 
 
+<<<<<<< Updated upstream
+=======
+
+        
+>>>>>>> Stashed changes
 class Chatbot:
-    def __init__(self, char_filename, bot):
+    def __init__(self, bot):
+        self.bot = bot
         self.prompt = None
         self.endpoint = bot.endpoint
+<<<<<<< Updated upstream
         # Send a PUT request to modify the settings
         requests.put(f"{self.endpoint}/config", json=model_config)
         # read character data from JSON file
@@ -44,15 +67,136 @@ class Chatbot:
             self.char_name = data["char_name"]
             self.char_persona = data["char_persona"]
             self.char_greeting = data["char_greeting"]
+=======
+        self.histories = {}  # Initialize the history dictionary
+        self.stop_sequences = {}  # Initialize the stop sequences dictionary
+        # select KoboldApiLLM or TextGen based on endpoint
+        
+        self.llm = KoboldApiLLM(endpoint=self.endpoint)
+
+             
+
+        with open("chardata.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+            self.char_name = data["char_name"]
+            self.char_persona = data["char_persona"]
+>>>>>>> Stashed changes
             self.world_scenario = data["world_scenario"]
             self.example_dialogue = data["example_dialogue"]
 
         # initialize conversation history and character information
         self.convo_filename = None
         self.conversation_history = ""
+<<<<<<< Updated upstream
         self.character_info = f"{self.char_name}'s Persona: {self.char_persona}\nScenario: {self.world_scenario}\n{self.example_dialogue}\n"
 
         self.num_lines_to_keep = 20
+=======
+        self.top_character_info = self.format_top_character_info()
+        self.bottom_character_info = self.format_bottom_character_info()
+        """
+        
+        the format I want:
+        Persona : top character info
+        Scenario : top character info
+        Example of Dialogues : top character info
+        Chat history
+        Author's Note aka bottom character info
+        User message : name: message_content
+        Bot Name:
+        """
+    
+    def format_bottom_character_info(self):
+        """
+        This helper function formats the character_info string, including the optional parts only if they exist.
+        """
+        info_str = f"\n{self.char_name}'s Persona: {self.char_persona}\n"
+            
+        return info_str
+
+        
+    def format_top_character_info(self):
+        """
+        This helper function formats the character_info string, including the optional parts only if they exist.
+        """
+        info_str = f"Character: {self.char_name}\n{self.char_name}'s Persona: {self.char_persona}\n"
+
+        if self.world_scenario:  # Check if world_scenario exists
+            info_str += f"Scenario: {self.world_scenario}\n"
+        
+        if self.example_dialogue:  # Check if example_dialogue exists
+            info_str += f"Example Dialogue:\n{self.example_dialogue}\n"
+            
+        return info_str
+    
+    # if message starts with . or / then it is a command and should not be appended to the conversation history. do not use flatten use append
+    async def get_messages_by_channel(self, channel_id):
+        channel = self.bot.get_channel(int(channel_id))
+        messages = []
+
+        async for message in channel.history(limit=None):
+            # Skip messages that start with '.' or '/'
+            if message.content.startswith('.') or message.content.startswith('/'):
+                continue
+
+            messages.append((message.author.display_name, message.channel.id, message.clean_content.replace("\n", " ")))
+
+            # Break the loop once we have at least 5 non-skipped messages
+            if len(messages) >= CHAT_HISTORY_LINE_LIMIT:
+                break
+
+        return messages[:CHAT_HISTORY_LINE_LIMIT]  # Return the first 5 non-skipped messages
+
+        
+    # this command will detect if the bot is trying to send  \nself.char_name: in its message and replace it with an empty string
+    async def detect_and_replace_out(self, message_content):
+        if f"\n{self.char_name}:":
+            message_content = message_content.replace(f"\n{self.char_name}:", "")
+        return message_content
+
+    # this command will detect if @botname is in the message and replace it with an empty string
+    async def detect_and_replace_in(self, message_content):
+        if f"@{self.char_name}":
+            message_content = message_content.replace(f"@{self.char_name}", "")
+        return message_content
+        
+    
+    
+    async def get_memory_for_channel(self, channel_id):
+        """Get the memory for the channel with the given ID. If no memory exists yet, create one."""
+        channel_id = str(channel_id)
+        if channel_id not in self.histories:
+            # Create a new memory for the channel
+            
+            self.histories[channel_id] = CustomBufferWindowMemory(
+                k=CHAT_HISTORY_LINE_LIMIT, ai_prefix=self.char_name
+            )
+            # Get the last 5 messages from the channel in a list
+            messages = await self.get_messages_by_channel(channel_id)
+            messages_to_add = messages[-2::-1]  # Exclude the last message using slicing
+            messages_to_add_minus_one = messages_to_add[:-1]
+            # Add the messages to the memory 
+            for message in messages_to_add_minus_one:
+                
+                name = message[0]
+                channel_ids = str(message[1])
+                message = message[2]
+                print(f"{name}: {message}")
+                await self.add_history(name, channel_ids, message)
+        
+        # self.memory = self.histories[channel_id]
+        return self.histories[channel_id]
+
+    async def get_stop_sequence_for_channel(self, channel_id, name):
+        name_token = f"\n{name}:"
+        if channel_id not in self.stop_sequences:
+            self.stop_sequences[channel_id] = STOP_SEQUENCES
+            
+        if name_token not in self.stop_sequences[channel_id]:
+            self.stop_sequences[channel_id].append(name_token)
+        
+        return self.stop_sequences[channel_id]
+>>>>>>> Stashed changes
 
     async def set_convo_filename(self, convo_filename):
         # set the conversation filename and load conversation history from file
@@ -63,9 +207,10 @@ class Chatbot:
                 f.write("<START>\n")
         with open(convo_filename, "r", encoding="utf-8") as f:
             lines = f.readlines()
-            num_lines = min(len(lines), self.num_lines_to_keep)
+            num_lines = min(len(lines), self.bot.num_lines_to_keep)
             self.conversation_history = "<START>\n" + "".join(lines[-num_lines:])
 
+<<<<<<< Updated upstream
     async def save_conversation(self, message, message_content):
         self.conversation_history += f'{message.author.name}: {message_content}\n'
         # define the prompt
@@ -124,33 +269,66 @@ class Chatbot:
             return response_text
 
 
+=======
+    async def generate_response(self, message, message_content) -> None:
+        channel_id = str(message.channel.id)
+        name = message.author.display_name
+        memory = await self.get_memory_for_channel(str(channel_id))
+        stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
+        print(f"stoop sequence: {stop_sequence}")
+        print(f"stop sequences: {stop_sequence}")
+        formatted_message = f"{name}: {message_content}"
+        MAIN_TEMPLATE = f'''
+{self.top_character_info}
+{{history}}
+{{input}}
+{self.char_name}:'''
+        
+        PROMPT = PromptTemplate(
+            input_variables=["history", "input"], 
+            template=MAIN_TEMPLATE
+        )
+                
+        # Create a conversation chain using the channel-specific memory
+        conversation = ConversationChain(
+            prompt=PROMPT,
+            llm=self.llm,
+            verbose=True,
+            memory=memory,
+        )
+        input_dict = {"input": formatted_message, "stop": stop_sequence}
+        response_text = conversation(input_dict)
+        response = await self.detect_and_replace_out(response_text["response"])
+        with open(self.convo_filename, "a", encoding="utf-8") as f:
+            f.write(f'{message.author.display_name}: {message_content}\n')
+            f.write(f'{self.char_name}: {response_text}\n')  # add a separator between
+
+        return response
+    
+        # this command receives a name, channel_id, and message_content then adds it to history
+        
+    async def add_history(self, name, channel_id, message_content) -> None:
+        # get the memory for the channel
+        memory = await self.get_memory_for_channel(str(channel_id))
+
+        formatted_message = f"{name}: {message_content}"
+
+        # add the message to the memory
+        print(f"adding message to memory: {formatted_message}")
+        memory.add_input_only(formatted_message)
+        return None
+            
+>>>>>>> Stashed changes
 
 class ChatbotCog(commands.Cog, name="chatbot"):
     def __init__(self, bot):
         self.bot = bot
         self.chatlog_dir = bot.chatlog_dir
-        self.chatbot = Chatbot("chardata.json", bot)
+        self.chatbot = Chatbot(bot)
 
         # create chatlog directory if it doesn't exist
         if not os.path.exists(self.chatlog_dir):
             os.makedirs(self.chatlog_dir)
-
-    # converts user ids and emoji ids
-    async def replace_user_mentions(self, content):
-        user_ids = re.findall(r'<@(\d+)>', content)
-        for user_id in user_ids:
-            user = await self.bot.fetch_user(int(user_id))
-            if user:
-                display_name = user.display_name
-                content = content.replace(f"<@{user_id}>", display_name)
-
-        emojis = re.findall(r'<:[^:]+:(\d+)>', content)
-        for emoji_id in emojis:
-            if ':' in content:
-                emoji_name = content.split(':')[1]
-                content = content.replace(f"<:{emoji_name}:{emoji_id}>", f":{emoji_name}:")
-        return content
-
 
 
     # Normal Chat handler
@@ -164,95 +342,8 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         if message.guild and self.chatbot.convo_filename != chatlog_filename or \
                 not message.guild and self.chatbot.convo_filename != chatlog_filename:
             await self.chatbot.set_convo_filename(chatlog_filename)
-        response = await self.chatbot.save_conversation(message, await self.replace_user_mentions(message_content))
+        response = await self.chatbot.generate_response(message, message_content)
         return response
-
-    @app_commands.command(name="followup", description="Make the bot send another message")
-    async def followup(self, interaction: discord.Interaction) -> None:
-        if interaction.guild:
-            server_name = interaction.channel.name
-        else:
-            server_name = interaction.author.name
-        chatlog_filename = os.path.join(self.chatlog_dir, f"{self.chatbot.char_name}_{server_name}_chatlog.log")
-        if interaction.guild and self.chatbot.convo_filename != chatlog_filename or \
-                not interaction.guild and self.chatbot.convo_filename != chatlog_filename:
-            await self.chatbot.set_convo_filename(chatlog_filename)
-        await interaction.response.defer()
-        await interaction.delete_original_response()
-        await interaction.channel.send(await self.chatbot.follow_up())
-
-
-
-
-    @app_commands.command(name="regenerate", description="regenerate last message")
-    async def regenerate(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer()
-        await interaction.delete_original_response()
-        if interaction.guild:
-            server_name = interaction.channel.name
-        else:
-            server_name = interaction.author.name
-        chatlog_filename = os.path.join(self.chatlog_dir, f"{self.chatbot.char_name}_{server_name}_chatlog.log")
-        if interaction.guild and self.chatbot.convo_filename != chatlog_filename or \
-                not interaction.guild and self.chatbot.convo_filename != chatlog_filename:
-            await self.chatbot.set_convo_filename(chatlog_filename)
-        # Get the last message sent by the bot in the channel
-        async for message in interaction.channel.history(limit=1):
-            if message.author == self.bot.user:
-                await message.delete()
-                lines = self.chatbot.conversation_history.splitlines()
-                for i in range(len(lines) - 1, -1, -1):
-                    if lines[i].startswith(f"{self.chatbot.char_name}:"):
-                        lines[i] = f"{self.chatbot.char_name}:"
-                        self.chatbot.conversation_history = "\n".join(lines)
-                        self.chatbot.conversation_history = self.chatbot.conversation_history
-                        break
-                print(f"string after: {repr(self.chatbot.conversation_history)}")
-                break  # Exit the loop after deleting the message
-        with open(self.chatbot.convo_filename, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-            # Find the last line that matches "self.chatbot.char_name: {message.content}"
-            last_line_num_to_overwrite = None
-            for i in range(len(lines) - 1, -1, -1):
-                if f"{self.chatbot.char_name}: {message.content}" in lines[i]:
-                    last_line_num_to_overwrite = i
-                    break
-            if last_line_num_to_overwrite is not None:
-                lines[last_line_num_to_overwrite] = ""
-                # Modify the last line that matches "self.chatbot.char_name: {message.content}"
-            with open(self.chatbot.convo_filename, "w", encoding="utf-8") as f:
-                f.writelines(lines)
-                f.close()
-        await interaction.channel.send(await self.chatbot.follow_up())
-
-        
-    async def api_get(self, parameter):
-        response = requests.get(f"{self.chatbot.endpoint}/api/v1/config/{parameter}")
-        return response.json()
-
-    async def api_put(self, parameter, value):
-        response = requests.put(f"{self.chatbot.endpoint}/api/v1/config/{parameter}", json={"value": value})
-        return response.json()
-
-    @app_commands.command(name="koboldget", description="Get the value of a parameter from the API")
-    async def koboldget(self, interaction: discord.Interaction, parameter: str):
-        try:
-            value = await self.api_get(parameter)
-            print(f"Parameter '{parameter}' value: {value}")
-            await interaction.response.send_message(embed=embedder(f"Parameter {parameter} value: {value}"),
-                                                    delete_after=3)
-        except Exception as e:
-            await interaction.response.send_message(embed=embedder(f"Error: {e}"), delete_after=12)
-
-    @app_commands.command(name="koboldput", description="Set the value of a parameter in the API")
-    async def koboldput(self, interaction: discord.Interaction, parameter: str, value: str):
-        try:
-            result = await self.api_put(parameter, value)
-            await interaction.response.send_message(embed=embedder(f"Parameter '{parameter}' updated to: {value}"),
-                                                    delete_after=3)
-        except Exception as e:
-            await interaction.response.send_message(embed=embedder(f"Error: {e}"), delete_after=12)
-
 
 
 

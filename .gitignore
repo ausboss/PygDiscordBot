@@ -11,4 +11,10 @@ backend/oasst-openapi.json
 Cards
 Characters
 chatlog_dir
+<<<<<<< Updated upstream
 chardata.json
+=======
+chardata.json
+venv
+.vscode/settings.json
+>>>>>>> Stashed changes
