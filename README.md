@@ -1,16 +1,13 @@
-# Project Description
+# update
+apparently people still use this. I appreciate that so I will start improving the main repo again. I added a few changes. 
 
-This project is actively being developed and aims to evolve into a chatbot with a specified personality that can also serve as a personal assistant. The most recent changes have been made in the branch called "langchain." The intention is to migrate the main branch to use langchain once all the bugs have been resolved.
+-There is now stop token support. Update your .envs based on the new sample env. just list words that you dont want to see the bot say divided by , 
 
-## Current Development Goals
+-bot will now say your display name and not your username
 
-- Implement web browsing capabilities.
-- Enable document summarization, website interaction, and chat with documents and websites.
-- Enhance the chatbot's ability to follow instructions similar to chatGPT, especially with instruct models like alpaca.
-- Integrate infinite memory using chromadb.
-- Improve image detection by leveraging the LLM and blip2 instruct models, similar to llava.
-- Provide the bot with access to readily available langchain tools, (think chatGPT4 plugins)
-- AGI?!?!?
+-i modified the endpoint and conversation history to use langchain and soon i will add oobabooga support. i just need to add a line to detect what api you put as the endpoint.
+
+-more to come soon..
 
 # Original Info Card: Discord Tavern Style LLM Chatbot
 
