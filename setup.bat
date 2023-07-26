@@ -50,16 +50,18 @@ if not exist .env (
 	echo.
 	echo Configure your .env file then launch run.bat
 	echo.
-	echo or run using "python discordbot.py <DISCORD_BOT_TOKEN> <ENDPOINT> <CHANNEL_ID>"
+	echo or run using "python discordbot.py"
     pause
     exit /b
 )
 
-REM Load environment variables from .env file
-for /f "delims=" %%a in ('type .env') do set "%%a"
+REM load the virtual environment
+call venv\Scripts\activate
+
+
 
 REM Run the Python script with the environment variables as arguments
-python discordbot.py %DISCORD_BOT_TOKEN% %ENDPOINT% %CHANNEL_ID%
+python discordbot.py
 
 
 pause

@@ -11,10 +11,26 @@ backend/oasst-openapi.json
 Cards
 Characters
 chatlog_dir
-<<<<<<< Updated upstream
 chardata.json
-=======
-chardata.json
+# Git ignore file for Python project
+
+# Ignore files and directories that don't matter
+/.git
+node_modules
 venv
+
+# Ignore build artifacts
+__pycache__
+*.egg-info
+*.egg
+
+# Ignore tests
+tests
+test
+
+# Ignore coverage reports
+coverage
+
+# Ignore logs
+logs
 .vscode/settings.json
->>>>>>> Stashed changes

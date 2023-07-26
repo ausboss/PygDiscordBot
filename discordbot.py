@@ -5,6 +5,7 @@ import discord
 from PIL import Image
 from pathlib import Path
 import base64
+from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Bot
 import asyncio
@@ -14,23 +15,11 @@ import logging
 import requests
 from dotenv import load_dotenv
 
-<<<<<<< Updated upstream
-if __name__ == '__main__':
-    if len(sys.argv) < 4:
-        print('Usage: python discordbot.py <DISCORD_BOT_TOKEN> <ENDPOINT> <CHANNEL_ID>')
-        sys.exit(1)
-    DISCORD_BOT_TOKEN = sys.argv[1]
-    ENDPOINT = sys.argv[2]
-    CHANNEL_ID = sys.argv[3]
-# Access environment variables like this
-=======
-
 load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 ENDPOINT = os.getenv("ENDPOINT")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 CHAT_HISTORY_LINE_LIMIT = os.getenv("CHAT_HISTORY_LINE_LIMIT")
->>>>>>> Stashed changes
 
 
 intents = discord.Intents.all()
@@ -45,23 +34,18 @@ bot.num_lines_to_keep = int(CHAT_HISTORY_LINE_LIMIT)
 bot.guild_ids = [int(x) for x in CHANNEL_ID.split(",")]
 bot.debug = True
 bot.char_name = ""
-<<<<<<< Updated upstream
-characters_folder = 'Characters'
-cards_folder = 'Cards'
-=======
+
 bot.endpoint_type = ""
 characters_folder = "Characters"
 cards_folder = "Cards"
->>>>>>> Stashed changes
 characters = []
 
+
 def upload_character(json_file, img, tavern=False):
-<<<<<<< Updated upstream
-    json_file = json_file if type(json_file) == str else json_file.decode('utf-8')
-=======
+
     json_file = json_file if type(
         json_file) == str else json_file.decode("utf-8")
->>>>>>> Stashed changes
+
     data = json.loads(json_file)
     outfile_name = data["char_name"]
     i = 1
@@ -84,8 +68,10 @@ def upload_tavern_character(img, name1, name2):
     _img.getexif()
     decoded_string = base64.b64decode(_img.info['chara'])
     _json = json.loads(decoded_string)
-    _json = {"char_name": _json['name'], "char_persona": _json['description'], "char_greeting": _json["first_mes"], "example_dialogue": _json['mes_example'], "world_scenario": _json['scenario']}
-    _json['example_dialogue'] = _json['example_dialogue'].replace('{{user}}', name1).replace('{{char}}', _json['char_name'])
+    _json = {"char_name": _json['name'], "char_persona": _json['description'], "char_greeting": _json["first_mes"],
+             "example_dialogue": _json['mes_example'], "world_scenario": _json['scenario']}
+    _json['example_dialogue'] = _json['example_dialogue'].replace(
+        '{{user}}', name1).replace('{{char}}', _json['char_name'])
     return upload_character(json.dumps(_json), img, tavern=True)
 
 
@@ -96,12 +82,7 @@ try:
         if filename.endswith('.png'):
             with open(os.path.join(cards_folder, filename), 'rb') as read_file:
                 img = read_file.read()
-<<<<<<< Updated upstream
-                name1 = 'User'
-                name2 = 'Character'
-                tavern_character_data = upload_tavern_character(img, name1, name2)
-            with open(os.path.join(characters_folder, tavern_character_data + '.json')) as read_file:
-=======
+
                 name1 = "User"
                 name2 = "Character"
                 tavern_character_data = upload_tavern_character(
@@ -110,13 +91,13 @@ try:
                 os.path.join(characters_folder,
                              tavern_character_data + ".json")
             ) as read_file:
->>>>>>> Stashed changes
                 character_data = json.load(read_file)
                 # characters.append(character_data)
             read_file.close()
             if not os.path.exists(f"{cards_folder}/Converted"):
                 os.makedirs(f"{cards_folder}/Converted")
-            os.rename(os.path.join(cards_folder, filename), os.path.join(f"{cards_folder}/Converted/", filename))
+            os.rename(os.path.join(cards_folder, filename),
+                      os.path.join(f"{cards_folder}/Converted/", filename))
 except:
     pass
 
@@ -139,14 +120,10 @@ for filename in os.listdir(characters_folder):
 
 # Character selection
 # Check if chardata.json exists
-<<<<<<< Updated upstream
-if os.path.exists('chardata.json'):
-    with open("chardata.json", encoding='utf-8') as read_file:
-=======
+
 if os.path.exists("chardata.json"):
 
     with open("chardata.json", encoding="utf-8") as read_file:
->>>>>>> Stashed changes
         character_data = json.load(read_file)
     # Prompt the user to use the same character
     print(f"Last Character used: {character_data['char_name']}")
@@ -217,7 +194,8 @@ async def on_ready():
             print(f"No image found for {char_name}. Setting image to default.")
         except discord.errors.HTTPException as error:
             if error.code == 50035 and 'Too many users have this username, please try another' in error.text:
-                new_name = input('Too many users have this username, Enter a new name(tip: üse án àccent lèttèr ): ')
+                new_name = input(
+                    'Too many users have this username, Enter a new name(tip: üse án àccent lèttèr ): ')
                 await bot.user.edit(username=new_name, avatar=avatar_data)
             elif error.code == 50035 and 'You are changing your username or Discord Tag too fast. Try again later.' in error.text:
                 pass
@@ -256,7 +234,8 @@ async def load_cogs() -> None:
                 if extension == 'pygbot':
                     bot.endpoint_connected = False
                 if not bot.debug:
-                    logging.error(f"\n\nIssue with ENDPOINT. Please check your ENDPOINT in the .env file")
+                    logging.error(
+                        f"\n\nIssue with ENDPOINT. Please check your ENDPOINT in the .env file")
                 else:
                     exception = f"{type(e).__name__}: {e}"
                     print(f"Failed to load extension {extension}\n{exception}")

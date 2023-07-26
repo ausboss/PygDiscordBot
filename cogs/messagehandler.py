@@ -11,18 +11,18 @@ class ListenerCog(commands.Cog, name="listener"):
     def __init__(self, bot):
         self.bot = bot
 
-    async def has_image_attachment(self, message_content):
+    async def has_image_attachment(self, message):
         url_pattern = re.compile(r'http[s]?://[^\s/$.?#].[^\s]*\.(jpg|jpeg|png|gif)', re.IGNORECASE)
         tenor_pattern = re.compile(r'https://tenor.com/view/[\w-]+')
-        for attachment in message_content.attachments:
+        for attachment in message.attachments:
             if attachment.filename.lower().endswith((".jpg", ".jpeg", ".png", ".gif")):
                 return True
             # Check if the message content contains a URL that ends with an image file extension
-        if url_pattern.search(message_content.content):
+        if url_pattern.search(message.content):
             return True
         # Check if the message content contains a Tenor GIF URL
 
-        elif tenor_pattern.search(message_content.content):
+        elif tenor_pattern.search(message.content):
             return True
         else:
             return False
