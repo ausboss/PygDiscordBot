@@ -11,10 +11,15 @@ from discord.ext import commands
 import os
 
 
-# load environment STOP_SEQUENCES variables and split them in to a list by comma
+# load environment STOP_SEQUENCES variables and split them into a list by comma
 load_dotenv()
 CHAT_HISTORY_LINE_LIMIT = int(os.getenv("CHAT_HISTORY_LINE_LIMIT"))
 STOP_SEQUENCES = os.getenv("STOP_SEQUENCES")
+
+# Replace escaped newline sequences with actual newline characters
+STOP_SEQUENCES = STOP_SEQUENCES.replace("\\n", "\n")
+
+# Split stop sequences into a list
 STOP_SEQUENCES = STOP_SEQUENCES.split(",")
 
 def embedder(msg):
@@ -51,21 +56,18 @@ class Chatbot:
 
         self.top_character_info = self.format_top_character_info()
 
-    # endpoint test function
-    # a function that will try the endpoint with TextGen and KoboldApiLLM and whichever one works will assign self.bot.llm to that one
-    # if both fail then the endpoint is valid. shut down the function and print an error message about checking the endpoint
     async def endpoint_test(self):
-        try:
-            self.bot.llm = TextGen(endpoint=self.endpoint, max_new_tokens=10)
-            self.bot.llm("Question: What is the sum of 2 +2?\nAnswer:")
-            self.bot.endpoint_type = "TextGen"
-        except:
+        for bot, type in [(TextGen(endpoint=self.endpoint, max_new_tokens=10), "TextGen"), 
+                          (KoboldApiLLM(endpoint=self.endpoint, max_context_length=10, max_length=10), "KoboldApiLLM")]:
             try:
-                self.bot.llm = KoboldApiLLM(endpoint=self.endpoint, max_context_length=10, max_length=10)
-                self.bot.llm("Question: What is the sum of 2 +2?\nAnswer:")
-                self.bot.endpoint_type = "KoboldApiLLM"
-            except:
-                print("Endpoint is not valid. Please check the endpoint and try again.")
+                self.bot.llm = bot
+                await asyncio.wait_for(self.bot.llm("Question: What is the sum of 2 +2?\nAnswer:"), timeout=5)
+                self.bot.endpoint_type = type
+                return  # Return early if we successfully connect
+            except Exception as e:
+                print(f"Failed to connect with {type} due to: {str(e)}")
+        else:
+            print("Endpoint is not valid. Please check the endpoint and try again.")
 
     def format_top_character_info(self):
         """
