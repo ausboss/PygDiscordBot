@@ -24,7 +24,7 @@ CHAT_HISTORY_LINE_LIMIT = os.getenv("CHAT_HISTORY_LINE_LIMIT")
 
 intents = discord.Intents.all()
 bot = Bot(command_prefix="/", intents=intents, help_command=None)
-bot.endpoint = ENDPOINT
+bot.endpoint = str(ENDPOINT)
 if len(bot.endpoint.split("/api")) > 0:
     bot.endpoint = bot.endpoint.split("/api")[0]
 bot.chatlog_dir = "chatlog_dir"
