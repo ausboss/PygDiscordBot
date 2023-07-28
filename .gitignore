@@ -23,3 +23,4 @@ discord.log
 discord.log
 *.db
 database/database.db
+helpers/text.txt
