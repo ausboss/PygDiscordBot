@@ -4,3 +4,4 @@ Pillow
 discord.py
 transformers
 langchain
+torch
