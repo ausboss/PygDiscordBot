@@ -5,6 +5,7 @@ import discord
 from PIL import Image
 from pathlib import Path
 import base64
+from langchain.llms import KoboldApiLLM, TextGen, OpenAI
 from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Bot
@@ -17,7 +18,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-ENDPOINT = os.getenv("ENDPOINT")
+ENDPOINT = str(os.getenv("ENDPOINT"))
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 CHAT_HISTORY_LINE_LIMIT = os.getenv("CHAT_HISTORY_LINE_LIMIT")
 
@@ -34,7 +35,6 @@ bot.num_lines_to_keep = int(CHAT_HISTORY_LINE_LIMIT)
 bot.guild_ids = [int(x) for x in CHANNEL_ID.split(",")]
 bot.debug = True
 bot.char_name = ""
-
 bot.endpoint_type = ""
 characters_folder = "Characters"
 cards_folder = "Cards"
@@ -163,25 +163,23 @@ if answer.lower() == "n":
 else:
     update_name = "n"
 
-try:
-    response = requests.get("http://127.0.0.1:7861/")
-    result = response.text[:200]
-    if response.status_code == 200:
-        # check the type of endpoint based on the result of the first 200 characters retunred in the text. if the result starts with <!DOCTYPE html> then its oobabooga other wise its koboldAI
-        result = response.text[:200]
-        if result.startswith("<!DOCTYPE html>"):
-            bot.endpoint_type = "o"
-        else:
-            bot.endpoint_type = "k"
-except:
-    print("there was an error with the endpoint")
+
+# add error catching for invalid endpoint
+llm_selected = input("Select LLM (1: Kobold, 2: Oobabooga): ")
+if llm_selected == "1":
+    bot.endpoint_type = "Kobold"
+    bot.llm = KoboldApiLLM(endpoint=bot.endpoint)
+elif llm_selected == "2":
+    bot.endpoint_type = "Oobabooga"
+    bot.llm = TextGen(model_url=bot.endpoint)
 
 
-# on ready event that will update the character name and picture if you chose yes
+
 
 
 @bot.event
 async def on_ready():
+
     if update_name.lower() == "y":
         try:
             with open(f"Characters/{char_image}", 'rb') as f:
