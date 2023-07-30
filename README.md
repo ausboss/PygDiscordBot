@@ -5,7 +5,7 @@ apparently people still use this. I appreciate that so I will start improving th
 
 -bot will now say your display name and not your username
 
--i modified the endpoint and conversation history to use langchain and soon i will add oobabooga support. i just need to add a line to detect what api you put as the endpoint.
+-i modified the endpoint and conversation history to use langchain and soon i will add oobabooga support. i just need to add a line to detect what api you put as the endpoint. (ADDED)
 
 -more to come soon..
 
