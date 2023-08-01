@@ -29,6 +29,7 @@ class ListenerCog(commands.Cog, name="listener"):
         self.listen_only_mode = {str(guild_id): False for guild_id in self.bot.channel_list}
         self.bot.sent_last_message = {str(channel_id): True for channel_id in self.bot.channel_list}
         self.timer_running = {}
+        self.ping_mode = False
 
 
     # create a function that will take a message and add it to the message dictionary wit the channel id as the key. if the key already exists, it will append the message to the list of messages
@@ -111,6 +112,8 @@ class ListenerCog(commands.Cog, name="listener"):
             else:
                 await interaction.response.send_message(embed=embedder(f".Listen-only mode is not enabled in this channel"), delete_after=5)
 
+                
+
     # Create a view for the listen-only mode command
     class ListenOnlyModeView(discord.ui.View):
 
@@ -123,6 +126,43 @@ class ListenerCog(commands.Cog, name="listener"):
     async def listen(self, interaction: discord.Interaction):
         view = self.ListenOnlyModeView(self)
         await interaction.response.send_message("Toggle listen-only mode:", view=view)
+        
+     # Create a select menu for the ping mode command
+    class PingModeSelect(discord.ui.Select):
+            
+            def __init__(self, parent):
+                self.parent = parent
+                options = [
+                    discord.SelectOption(
+                        label="Enable", description="Enable ping mode.", emoji="🔔"
+                    ),
+                    discord.SelectOption(
+                        label="Disable", description="Disable ping mode.", emoji="🔕"
+                    ),
+                ]
+                super().__init__(
+                    placeholder="Choose...",
+                    min_values=1,
+                    max_values=1,
+                    options=options,
+                )
+    
+            async def callback(self, interaction: discord.Interaction):
+                if self.values[0] == "Enable":
+                    self.parent.ping_mode = True
+                    await interaction.response.send_message(embed=embedder(f".Ping mode is now set to {self.parent.ping_mode}"), delete_after=5)
+                else:
+                    self.parent.ping_mode = False
+                    await interaction.response.send_message(embed=embedder(f".Ping mode is now set to {self.parent.ping_mode}"), delete_after=5)
+                    
+        
+    # This command will switch the bot to ping mode, where it will respond to every message sent in the channel.
+    @app_commands.command(name="pingmode", description="ping mode")
+    async def pingmode(self, interaction: discord.Interaction):
+        self.ping_mode = True
+        await interaction.response.send_message(embed=embedder(f".Ping mode is now set to {self.ping_mode}"), delete_after=5)
+        
+
 
     async def has_image_attachment(self, message_content):
         url_pattern = re.compile(r'http[s]?://[^\s/$.?#].[^\s]*\.(jpg|jpeg|png|gif)', re.IGNORECASE)
@@ -152,7 +192,7 @@ class ListenerCog(commands.Cog, name="listener"):
         else:
             async with message.channel.typing():
 
-                response = await self.bot.get_cog("chatbot").chat_command(message.author.display_name, message.channel.id, image_response)
+                response = await self.bot.get_cog("chatbot").chat_command(message.author.display_name, message.channel.id, image_response, message)
                 await self.add_message_to_dict(message, image_response)
                 if response:
                     # If the response is more than 2000 characters, split it
@@ -176,7 +216,7 @@ class ListenerCog(commands.Cog, name="listener"):
             await self.add_message_to_dict(message, message.clean_content)
             # await self.set_timer(message.channel.id)
         else:
-            response = await self.bot.get_cog("chatbot").chat_command(message.author.display_name, message.channel.id, message.clean_content)
+            response = await self.bot.get_cog("chatbot").chat_command(message.author.display_name, message.channel.id, message.clean_content, message)
             await self.add_message_to_dict(message, message.clean_content)
             async with message.channel.typing():
                 # If the response is more than 2000 characters, split it
@@ -210,26 +250,32 @@ class ListenerCog(commands.Cog, name="listener"):
         if (
             message.author == self.bot.user
             or message.content.startswith((".", "/"))
-            or message.channel.id not in [int(channel_id) for channel_id in self.bot.channel_list]
+
         ):
             return
+        
+        if message.channel.id not in [int(channel_id) for channel_id in self.bot.channel_list] and message.guild is not None:
+            return
 
+        if not self.ping_mode:
         # We define is_false_positive first.
-        is_false_positive = (message.reference and message.reference.resolved.author != self.bot.user and
-                             self.bot.user.name.lower() in message.clean_content.lower())
+            is_false_positive = (message.reference and message.reference.resolved.author != self.bot.user and
+                                self.bot.user.name.lower() in message.clean_content.lower())
 
-        # Checking if the message is a reply to the bot
-        is_reply_to_bot = message.reference and message.reference.resolved.author == self.bot.user
+            # Checking if the message is a reply to the bot
+            is_reply_to_bot = message.reference and message.reference.resolved.author == self.bot.user
 
-        # Checking if the message mentions the bot
-        mentions_bot = self.bot.user in message.mentions
+            # Checking if the message mentions the bot
+            mentions_bot = self.bot.user in message.mentions
 
-        # Checking if the message contains the bot's name or any of the aliases
-        contains_bot_name = self.bot.user.name.lower() in message.clean_content.lower() or any(alias.lower() in message.clean_content.lower() for alias in ALIASES)
+            # Checking if the message contains the bot's name or any of the aliases
+            contains_bot_name = self.bot.user.name.lower() in message.clean_content.lower() or any(alias.lower() in message.clean_content.lower() for alias in ALIASES)
 
-        # The message is considered directed at the bot if `is_reply_to_bot`, `mentions_bot`, or `contains_bot_name` is true,
-        # but `is_false_positive` is not true.
-        directed_at_bot = (is_reply_to_bot or mentions_bot or contains_bot_name) and not is_false_positive
+            # The message is considered directed at the bot if `is_reply_to_bot`, `mentions_bot`, or `contains_bot_name` is true,
+            # but `is_false_positive` is not true.
+            directed_at_bot = (is_reply_to_bot or mentions_bot or contains_bot_name) and not is_false_positive
+        else:
+            directed_at_bot = True
 
         # Determine message type
         message_type = 'nr' if self.listen_only_mode[str(message.channel.id)] or not directed_at_bot else None

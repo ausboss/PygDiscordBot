@@ -20,14 +20,14 @@ import os
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
 from dotenv import load_dotenv
 from helpers.constants import MAINTEMPLATE, BOTNAME, K
-from helpers.custom_memory import *
+from helpers.custom_memory import CustomBufferWindowMemory
 from pydantic import Field
 
-from helpers.db_manager import get_messages_by_channel
 
 from ooballm import OobaApiLLM
 import datetime
 
+CHAT_HISTORY_LINE_LIMIT = 15
 
 
 class Chatbot:
@@ -55,32 +55,53 @@ class Chatbot:
             memory=self.memory,
         )
 
-    # this command will get the memory for the channel with the given ID. If no memory exists yet, create one and attempt to add the last 5 messages from the channel to the memory using get_messages_by_channel and add_history functions
+    # if message starts with . or / then it is a command and should not be appended to the conversation history. do not use flatten use append
+
+    async def get_messages_by_channel(self, channel_id):
+        channel = self.bot.get_channel(int(channel_id))
+        messages = []
+
+        async for message in channel.history(limit=None):
+            # Skip messages that start with '.' or '/'
+            if message.content.startswith('.') or message.content.startswith('/'):
+                continue
+
+            messages.append((message.author.display_name, message.channel.id,
+                            message.clean_content.replace("\n", " ")))
+
+            # Break the loop once we have at least 5 non-skipped messages
+            if len(messages) >= CHAT_HISTORY_LINE_LIMIT:
+                break
+
+        # Return the first 5 non-skipped messages
+        return messages[:CHAT_HISTORY_LINE_LIMIT]
+
     async def get_memory_for_channel(self, channel_id):
         """Get the memory for the channel with the given ID. If no memory exists yet, create one."""
         channel_id = str(channel_id)
         if channel_id not in self.histories:
             # Create a new memory for the channel
+
             self.histories[channel_id] = CustomBufferWindowMemory(
-                k=20, ai_prefix=self.char_name
+                k=CHAT_HISTORY_LINE_LIMIT, ai_prefix=self.char_name
             )
             # Get the last 5 messages from the channel in a list
-            messages = await get_messages_by_channel(channel_id)
-            messages_to_add = messages[-2::-1]  # Exclude the last message using slicing
+            messages = await self.get_messages_by_channel(channel_id)
+            # Exclude the last message using slicing
+            messages_to_add = messages[-2::-1]
             messages_to_add_minus_one = messages_to_add[:-1]
-            # Add the messages to the memory 
+            # Add the messages to the memory
             for message in messages_to_add_minus_one:
-                
+
                 name = message[0]
                 channel_ids = str(message[1])
                 message = message[2]
                 print(f"{name}: {message}")
                 await self.add_history(name, channel_ids, message)
-        
+
         # self.memory = self.histories[channel_id]
         return self.histories[channel_id]
 
-    
     async def get_stop_sequence_for_channel(self, channel_id, name):
         name_token = f"\n{name}:"
         if channel_id not in self.stop_sequences:
@@ -88,7 +109,7 @@ class Chatbot:
                 "### Instruction",
                 "### Response",
                 "\n\n"
-            ] 
+            ]
         if name_token not in self.stop_sequences[channel_id]:
             self.stop_sequences[channel_id].append(name_token)
         return self.stop_sequences[channel_id]
@@ -100,18 +121,18 @@ class Chatbot:
 
         # Format the date and time as desired
         formatted_time = now.strftime("%I:%M %p")  # 10:23 AM
-        formatted_date = now.strftime("%A, %B %dth %Y")  # Tuesday, July 18th 2023
+        formatted_date = now.strftime(
+            "%A, %B %dth %Y")  # Tuesday, July 18th 2023
 
         # Create the final message
         message = f"It is currently {formatted_time} CST on {formatted_date}"
         return message
 
-
     async def get_chat_participants_for_channel(self, channel_id, name):
         if channel_id not in self.chat_participants:
             self.chat_participants[channel_id] = [
                 self.char_name
-            ] 
+            ]
         if name not in self.chat_participants[channel_id]:
             self.chat_participants[channel_id].append(name)
         return self.chat_participants[channel_id]
@@ -119,7 +140,8 @@ class Chatbot:
     # this command will detect if the bot is trying to send  \nself.char_name: in its message and replace it with an empty string
     async def detect_and_replace_out(self, message_content):
         if f"\n{self.char_name}:":
-            message_content = message_content.replace(f"\n{self.char_name}:", "")
+            message_content = message_content.replace(
+                f"\n{self.char_name}:", "")
         return message_content
 
     # this command will detect if @botname is in the message and replace it with an empty string
@@ -128,7 +150,7 @@ class Chatbot:
             message_content = message_content.replace(f"@{self.char_name}", "")
         return message_content
 
-    async def force_generate_response(self, channel_id)  -> None:
+    async def force_generate_response(self, channel_id) -> None:
 
         memory = await self.get_memory_for_channel(str(channel_id))
 
@@ -144,19 +166,19 @@ class Chatbot:
         messages = '\n'.join(recent_messages)
         system_message = await self.generate_system_message()
 
-
         template = f'''Below is an instruction that describes a task. Write a response that appropriately completes the request.
 ### Instruction:
 Write {self.char_name}'s next reply in a discord group chat with other people. Write 1 reply only.
-{system_message} You are {self.char_name}, a lively and playful Female AI Chatbot created by Austin (a.k.a. AusBoss). You live inside Austin's computer with two nvidia A5000 GPUs and are powered by open source language models. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. Your goal is to chat with people and reply to users with witty and sometimes edgy humor. If somebody insults you then insult them back. 
+{system_message} You are {self.char_name}, a lively and playful Female A.I. friend. Tensor was created by Austin (a.k.a. AusBoss) and designed to be a digital companion. You live inside Austin's computer with two nvidia A5000 GPUs and are powered by open source language models. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. Your goal is to chat with people and reply to users with witty and sometimes edgy humor.
 
 This is how {self.char_name} should talk
+<START OF CONVERSATION>
 AusBoss: Hey Tensor!
 {self.char_name}: Hey AusBoss! Hows it going bestie?! 🤩👋
 AusBoss: Pretty good! I'm just working on some of your stuff right now. I want to test you out. Are you ready?
 {self.char_name}: of course! I'm always read to test out the stuff you add to me! 🤩👍
 AusBoss: Awesome! I'm going to send you some pics and I want you to tell me what you see and what you think about them.
-AusBoss: heres the first one [AusBoss posts a picture of a baby monkey with a gold chain.
+AusBoss: heres the first one [AusBoss posts a picture of a baby monkey with a gold chain.]
 {self.char_name}: OMG! That monkey is so cool! What a little baller with that gold chain! 🤩🐒🔥
 <END OF CONVERSATION>
 DO NOT use these examples in the Response.
@@ -166,7 +188,6 @@ DO NOT use these examples in the Response.
 ### Response:
 {self.char_name}:'''
 
-
         response_text = self.llm(template, stop=stop_sequence).lstrip()
 
         # response = await self.detect_and_replace_out(response_text["response"])
@@ -174,23 +195,29 @@ DO NOT use these examples in the Response.
 
         return response_text
 
-
-    async def generate_response(self, name, channel_id, message_content) -> None:
+    async def generate_response(self, name, channel_id, message_content, message) -> None:
+        try:
+            memory_context = await self.bot.get_cog("memory_cog").query_memory_live(message.author.display_name, message.channel.id, message.clean_content.replace(self.char_name, ""), message)
+            if memory_context != "":
+                memory_context = f"### Input:\n{memory_context}"
+        except:
+            memory_context = ""
+            
+        
 
         memory = await self.get_memory_for_channel(str(channel_id))
-
         
+
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
         chat_participants = await self.get_chat_participants_for_channel(channel_id, name)
-        print(f"chat participants: {chat_participants}\n total chat participants: {len(chat_participants)}")
+        print(
+            f"chat participants: {chat_participants}\n total chat participants: {len(chat_participants)}")
         print(f"stop sequences: {stop_sequence}")
         formatted_message = f"{name}: {message_content}"
         system_message = await self.generate_system_message()
-        MAIN_TEMPLATE = f'''Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
+        MAIN_TEMPLATE = f'''### Instruction:
 Write {BOTNAME}'s next reply in a discord group chat with other people. Write 1 reply only.
 {system_message}. You are {self.char_name}, a lively and playful Female AI Chatbot created by Austin (a.k.a. AusBoss). You live inside Austin's computer with two nvidia A5000 GPUs and are powered by open source language models. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. Your goal is to chat with people and reply to users with witty and sometimes edgy humor. If somebody insults you then insult them back. 
-
 This is how {self.char_name} should talk
 AusBoss: Hey Tensor!
 {self.char_name}: Hey AusBoss! Hows it going bestie?! 🤩👋
@@ -201,12 +228,11 @@ AusBoss: heres the first one [AusBoss posts a picture of a baby monkey with a go
 {self.char_name}: OMG! That monkey is so cool! What a little baller with that gold chain! 🤩🐒🔥
 <END OF CONVERSATION>
 DO NOT use these examples in the Response.
+
 <START OF CONVERSATION>
 {{history}}
-
-### Instruction:
+{memory_context}
 {{input}}
-
 ### Response:
 {BOTNAME}:'''
         PROMPT = PromptTemplate(
@@ -290,7 +316,7 @@ Tensor: Got the intel, AusBoss! 👀📚 The Legend of Zelda: Breath of the Wild
         response_text = conversation(input_dict)
 
         response = await self.detect_and_replace_out(response_text["response"])
-    
+
         return response.strip()
 
 #     async def generate_instruct(self, instruction) -> None:
@@ -341,13 +367,14 @@ class ChatbotCog(commands.Cog, name="chatbot"):
 
     # # Normal Chat handler
     @commands.command(name="chat")
-    async def chat_command(self, name, channel_id, message_content) -> None:
+    async def chat_command(self, name, channel_id, message_content, message) -> None:
+        print(channel_id)
 
         # Define suffixes and the associated functions
         suffix_functions = {
             '--searchweb': self.bot.get_cog("agent_commands").execute_search_message,
             '--calculator': self.bot.get_cog("agent_commands").execute_calculation_message,
-            # '--othersuffix': self.other_function, 
+            # '--othersuffix': self.other_function,
             # Add more suffix-function pairs as needed
         }
 
@@ -361,7 +388,7 @@ class ChatbotCog(commands.Cog, name="chatbot"):
                 break
         else:
             # If no suffix match, proceed with the normal chat handling
-            response = await self.chatbot.generate_response(name, channel_id, message_content)
+            response = await self.chatbot.generate_response(name, channel_id, message_content, message)
         self.bot.sent_last_message[str(channel_id)] = True
         return response
 
@@ -372,8 +399,8 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         await self.chatbot.add_history(name, str(channel_id), message_content)
         return None
 
-
     # Instruct Command Handler
+
     @commands.command(name="instruct")
     async def instruct(self, instruction) -> None:
         response = await self.chatbot.generate_instruct(instruction)
@@ -394,8 +421,8 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         )
         return response
 
-
     # force generate response
+
     @commands.command(name="forcegeneratemessage")
     async def force_generate_message(self, channel_id) -> None:
         response = await self.chatbot.force_generate_response(channel_id)
