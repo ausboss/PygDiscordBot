@@ -5,7 +5,6 @@ from discord.ext import commands
 import os
 from langchain.tools import DuckDuckGoSearchRun
 from dotenv import load_dotenv
-from helpers.constants import BOTNAME
 from langchain.chains import LLMMathChain
 from langchain.agents import Tool
 from langchain.agents import load_tools
@@ -19,9 +18,9 @@ OPENAI = os.getenv('OPENAI')
 
 def embedder(msg):
     embed = discord.Embed(
-            description=f"{msg}",
-            color=0x9C84EF
-        )
+        description=f"{msg}",
+        color=0x9C84EF
+    )
     return embed
 
 
@@ -30,14 +29,13 @@ class AgentCommands(commands.Cog, name="agent_commands"):
     def __init__(self, bot):
         self.bot = bot
         self.llm = self.bot.llm
-        self.bot
 
         self.search = DuckDuckGoSearchRun()  # DuckDuckGo tool
 
     # calculator command that will take a message and return the result of the calculation
     async def _execute_calculation(self, display_name: str, channel_id: int, prompt: str):
         """Executes a calculation and returns a formatted response."""
-        
+
         tool = "Calculator"
         llm = OpenAI(
             openai_api_key=OPENAI,  # platform.openai.com
@@ -80,7 +78,7 @@ class AgentCommands(commands.Cog, name="agent_commands"):
     @commands.command(name="calculator")
     async def execute_calculation_message(self, name, channel_id, message_content) -> None:
         """This command takes a message and returns the result of the calculation."""
-        
+
         return await self._execute_calculation(
             name,
             str(channel_id),
@@ -90,7 +88,7 @@ class AgentCommands(commands.Cog, name="agent_commands"):
     @commands.command(name="calculatorinteraction")
     async def execute_calculation_interaction(self, interaction: discord.Interaction, prompt: str):
         """This command performs a calculation based on an interaction and prompt."""
-        
+
         return await self._execute_calculation(
             interaction.user.display_name,
             interaction.channel.id,
@@ -100,7 +98,7 @@ class AgentCommands(commands.Cog, name="agent_commands"):
     @app_commands.command(name="calculatorcommand", description="Perform Calculation")
     async def calculate(self, interaction: discord.Interaction, prompt: str):
         """This command performs a calculation and sends an embedded response message to the channel."""
-        
+
         await interaction.response.send_message(
             embed=discord.Embed(
                 title=f"{interaction.user.display_name} used Calculator",
@@ -113,16 +111,14 @@ class AgentCommands(commands.Cog, name="agent_commands"):
 
         await interaction.channel.send(response)
 
-    # websearch functions    
+    # websearch functions
 
     async def _execute_search(self, display_name: str, channel_id: int, prompt: str):
         """Executes a web search and returns a formatted response."""
-        
+
         tool = "Web Search"
         results = self.search(prompt)
         straight_response = await self.bot.get_cog("chatbot").instruct_input(prompt, results)
-
-
 
         response = await self.bot.get_cog("chatbot").agent_command(
             display_name,
@@ -137,7 +133,7 @@ class AgentCommands(commands.Cog, name="agent_commands"):
     @commands.command(name="searchwebmessage")
     async def execute_search_message(self, name, channel_id, message_content) -> None:
         """This command takes a message and returns the result of the calculation."""
-        
+
         return await self._execute_search(
             name,
             str(channel_id),
@@ -147,7 +143,7 @@ class AgentCommands(commands.Cog, name="agent_commands"):
     @commands.command(name="searchwebinteraction")
     async def execute_search_interaction(self, interaction: discord.Interaction, prompt: str):
         """This command performs a web search based on an interaction and prompt."""
-        
+
         return await self._execute_search(
             interaction.user.display_name,
             interaction.channel.id,
@@ -157,7 +153,7 @@ class AgentCommands(commands.Cog, name="agent_commands"):
     @app_commands.command(name="searchwebcommand", description="Query Web")
     async def search_web(self, interaction: discord.Interaction, prompt: str):
         """This command performs a web search and sends an embedded response message to the channel."""
-        
+
         await interaction.response.send_message(
             embed=discord.Embed(
                 title=f"{interaction.user.display_name} used Search Web",
@@ -188,16 +184,22 @@ class AgentCommands(commands.Cog, name="agent_commands"):
 
         channel_id = interaction.channel.id
 
-        
-
         async with interaction.channel.typing():
             response = await self.bot.get_cog("chatbot").instruct(prompt)
             updated_string = response.replace("'''", "```")
             # Check if response is not None
             if response:
-                await self.bot.get_cog("chatbot").chat_command_nr(interaction.user.display_name, str(channel_id), prompt)
+                await self.bot.get_cog("chatbot").chat_command_nr(
+                    interaction.user.display_name,
+                    str(channel_id),
+                    prompt
+                    )
                 response_obj = await interaction.channel.send(updated_string)
-                await self.bot.get_cog("chatbot").chat_command_nr(BOTNAME, str(response_obj.channel.id), updated_string)
+                await self.bot.get_cog("chatbot").chat_command_nr(
+                    self.bot.name,
+                    str(response_obj.channel.id),
+                    updated_string
+                )
 
 
 async def setup(bot):

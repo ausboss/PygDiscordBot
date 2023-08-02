@@ -4,11 +4,10 @@ import re
 import discord
 from discord.ext import commands
 from discord import app_commands
-from helpers.constants import ALIASES
 
 from helpers.db_manager import log_message
 
-SLEEPTIMER = 3
+SLEEPTIMER = 2
 WAITTIMER = 45
 
 def embedder(msg):
@@ -23,13 +22,14 @@ class ListenerCog(commands.Cog, name="listener"):
 
     def __init__(self, bot):
         self.bot = bot
+        self.aliases = self.bot.config['ALIASES']
         # create a dictionary of messages where the channel id is the key and the value is the message
         self.message_dict = {}
         # self.listen_only_mode needs to be a dictionary with the guild id as the key and the value as the boolean
         self.listen_only_mode = {str(guild_id): False for guild_id in self.bot.channel_list}
         self.bot.sent_last_message = {str(channel_id): True for channel_id in self.bot.channel_list}
         self.timer_running = {}
-        self.ping_mode = False
+        self.ping_mode = True
 
 
     # create a function that will take a message and add it to the message dictionary wit the channel id as the key. if the key already exists, it will append the message to the list of messages

@@ -19,7 +19,6 @@ from langchain.schema import messages_from_dict, messages_to_dict
 import os
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
 from dotenv import load_dotenv
-from helpers.constants import MAINTEMPLATE, BOTNAME, K
 from helpers.custom_memory import CustomBufferWindowMemory
 from pydantic import Field
 
@@ -27,34 +26,24 @@ from pydantic import Field
 from ooballm import OobaApiLLM
 import datetime
 
-CHAT_HISTORY_LINE_LIMIT = 15
+CHAT_HISTORY_LINE_LIMIT = 0
 
 
 class Chatbot:
 
     def __init__(self, bot):
         self.bot = bot
-        os.environ["OPENAI_API_KEY"] = self.bot.openai
         self.histories = {}  # Initialize the history dictionary
         self.stop_sequences = {}  # Initialize the stop sequences dictionary
         self.bot.logger.info("Endpoint: " + str(self.bot.endpoint))
-        self.char_name = BOTNAME
-        self.memory = CustomBufferWindowMemory(k=K, ai_prefix=self.char_name)
+        self.char_name = bot.config['BOTNAME']
+        self.k = bot.config['k']
+        self.memory = CustomBufferWindowMemory(
+            k=self.k, ai_prefix=self.char_name)
         self.chat_participants = {}
         self.bot.chat_participants = self.chat_participants
         self.history = "[Beginning of Conversation]"
         self.llm = self.bot.llm
-        self.template = MAINTEMPLATE
-        self.PROMPT = PromptTemplate(
-            input_variables=["history", "input"], template=self.template
-        )
-        self.conversation = ConversationChain(
-            prompt=self.PROMPT,
-            llm=self.llm,
-            verbose=True,
-            memory=self.memory,
-        )
-
     # if message starts with . or / then it is a command and should not be appended to the conversation history. do not use flatten use append
 
     async def get_messages_by_channel(self, channel_id):
@@ -161,32 +150,27 @@ class Chatbot:
         # Split the history string into lines, each line is a separate message
         message_list = history['history'].split('\n')
         # Get only the last 10*2 messages in the list
-        recent_messages = message_list[-K*2:]
+        recent_messages = message_list[-self.K*2:]
         # Join all recent messages with newline and create the final messages string
         messages = '\n'.join(recent_messages)
         system_message = await self.generate_system_message()
+        with open("prompt.txt", "r", encoding="utf-8") as f:
+            prompt = f.read()
+        top_template = prompt.format(BOTNAME=self.char_name,
+                                     system_message=system_message,
+                                     memory_context=memory_context
+                                     )
 
-        template = f'''Below is an instruction that describes a task. Write a response that appropriately completes the request.
-### Instruction:
-Write {self.char_name}'s next reply in a discord group chat with other people. Write 1 reply only.
-{system_message} You are {self.char_name}, a lively and playful Female A.I. friend. Tensor was created by Austin (a.k.a. AusBoss) and designed to be a digital companion. You live inside Austin's computer with two nvidia A5000 GPUs and are powered by open source language models. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. Your goal is to chat with people and reply to users with witty and sometimes edgy humor.
-
-This is how {self.char_name} should talk
-<START OF CONVERSATION>
-AusBoss: Hey Tensor!
-{self.char_name}: Hey AusBoss! Hows it going bestie?! 🤩👋
-AusBoss: Pretty good! I'm just working on some of your stuff right now. I want to test you out. Are you ready?
-{self.char_name}: of course! I'm always read to test out the stuff you add to me! 🤩👍
-AusBoss: Awesome! I'm going to send you some pics and I want you to tell me what you see and what you think about them.
-AusBoss: heres the first one [AusBoss posts a picture of a baby monkey with a gold chain.]
-{self.char_name}: OMG! That monkey is so cool! What a little baller with that gold chain! 🤩🐒🔥
+        bottom_template = """
 <END OF CONVERSATION>
 DO NOT use these examples in the Response.
+
 <START OF CONVERSATION>
 {messages}
 
 ### Response:
-{self.char_name}:'''
+{BOTNAME}:"""
+        template = top_template + bottom_template.format(messages=messages, BOTNAME=self.char_name)
 
         response_text = self.llm(template, stop=stop_sequence).lstrip()
 
@@ -202,11 +186,8 @@ DO NOT use these examples in the Response.
                 memory_context = f"### Input:\n{memory_context}"
         except:
             memory_context = ""
-            
-        
 
         memory = await self.get_memory_for_channel(str(channel_id))
-        
 
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
         chat_participants = await self.get_chat_participants_for_channel(channel_id, name)
@@ -215,26 +196,26 @@ DO NOT use these examples in the Response.
         print(f"stop sequences: {stop_sequence}")
         formatted_message = f"{name}: {message_content}"
         system_message = await self.generate_system_message()
-        MAIN_TEMPLATE = f'''### Instruction:
-Write {BOTNAME}'s next reply in a discord group chat with other people. Write 1 reply only.
-{system_message}. You are {self.char_name}, a lively and playful Female AI Chatbot created by Austin (a.k.a. AusBoss). You live inside Austin's computer with two nvidia A5000 GPUs and are powered by open source language models. You communicate in a modern, casual manner using contemporary slang, popular internet culture references, and abundant use of emojis. Your goal is to chat with people and reply to users with witty and sometimes edgy humor. If somebody insults you then insult them back. 
-This is how {self.char_name} should talk
-AusBoss: Hey Tensor!
-{self.char_name}: Hey AusBoss! Hows it going bestie?! 🤩👋
-AusBoss: Pretty good! I'm just working on some of your stuff right now. I want to test you out. Are you ready?
-{self.char_name}: of course! I'm always read to test out the stuff you add to me! 🤩👍
-AusBoss: Awesome! I'm going to send you some pics and I want you to tell me what you see and what you think about them.
-AusBoss: heres the first one [AusBoss posts a picture of a baby monkey with a gold chain.
-{self.char_name}: OMG! That monkey is so cool! What a little baller with that gold chain! 🤩🐒🔥
-<END OF CONVERSATION>
-DO NOT use these examples in the Response.
+        with open("prompt.txt", "r", encoding="utf-8") as f:
+            prompt = f.read()
+        top_template = prompt.format(
+            BOTNAME=self.char_name,
+            system_message=system_message
+        )
 
+        bottom_template = """
 <START OF CONVERSATION>
 {{history}}
 {memory_context}
 {{input}}
 ### Response:
-{BOTNAME}:'''
+{BOTNAME}:"""
+
+        MAIN_TEMPLATE = top_template + bottom_template.format(
+            memory_context=memory_context,
+            BOTNAME=self.char_name
+        )
+
         PROMPT = PromptTemplate(
             input_variables=["history", "input"], template=MAIN_TEMPLATE
         )

@@ -27,6 +27,9 @@ if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/config.jso
 else:
     with open(f"{os.path.realpath(os.path.dirname(__file__))}/config.json") as file:
         config = json.load(file)
+        # print BOTNAME from config.json
+        print(f"Botname: {config['BOTNAME']}")
+
 
 # Load environment variables
 load_dotenv()
@@ -72,6 +75,7 @@ bot.endpoint_connected = False
 bot.channel_list = [int(x) for x in CHANNEL_ID.split(",")]
 bot.owners = [int(x) for x in OWNERS.split(",")]
 bot.sent_last_message = {}
+bot.name = config["BOTNAME"]
 
 class LoggingFormatter(logging.Formatter):
     # Colors
@@ -135,6 +139,7 @@ async def init_db():
 
 
 bot.config = config
+
 
 
 # on ready event that will update the character name and picture if you chose yes

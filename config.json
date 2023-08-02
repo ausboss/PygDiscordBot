@@ -4,6 +4,12 @@
     "permissions": "YOUR_BOT_PERMISSIONS_HERE",
     "application_id": "YOUR_APPLICATION_ID_HERE",
     "sync_commands_globally": false,
+    "k": 10,
+    "BOTNAME": "Tensor",
+    "ALIASES": [
+      "tensy", 
+      "Tensorsama"
+    ],
     "owners": [
       240893387874500608
     ]

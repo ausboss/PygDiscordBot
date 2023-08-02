@@ -24,3 +24,4 @@ discord.log
 *.db
 database/database.db
 helpers/text.txt
+config.json
