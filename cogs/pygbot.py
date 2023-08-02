@@ -35,12 +35,12 @@ class Chatbot:
         self.bot = bot
         self.prompt = None
         self.endpoint = bot.endpoint
+        self.llm = self.bot.llm
 
         self.histories = {}  # Initialize the history dictionary
         self.stop_sequences = {}  # Initialize the stop sequences dictionary
         # select KoboldApiLLM or TextGen based on endpoint
 
-        self.llm = KoboldApiLLM(endpoint=self.endpoint)
 
         with open("chardata.json", "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -55,19 +55,6 @@ class Chatbot:
         self.conversation_history = ""
 
         self.top_character_info = self.format_top_character_info()
-
-    async def endpoint_test(self):
-        for bot, type in [(TextGen(endpoint=self.endpoint, max_new_tokens=10), "TextGen"), 
-                          (KoboldApiLLM(endpoint=self.endpoint, max_context_length=10, max_length=10), "KoboldApiLLM")]:
-            try:
-                self.bot.llm = bot
-                await asyncio.wait_for(self.bot.llm("Question: What is the sum of 2 +2?\nAnswer:"), timeout=5)
-                self.bot.endpoint_type = type
-                return  # Return early if we successfully connect
-            except Exception as e:
-                print(f"Failed to connect with {type} due to: {str(e)}")
-        else:
-            print("Endpoint is not valid. Please check the endpoint and try again.")
 
     def format_top_character_info(self):
         """
