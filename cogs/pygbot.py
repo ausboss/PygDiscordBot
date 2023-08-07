@@ -163,13 +163,12 @@ class Chatbot:
 
         bottom_template = """
 <END OF CONVERSATION>
-DO NOT use these examples in the Response.
 
 <START OF CONVERSATION>
 {messages}
 
 ### Response:
-{BOTNAME}:"""
+{BOTNAME}: *"""
         template = top_template + bottom_template.format(messages=messages, BOTNAME=self.char_name)
 
         response_text = self.llm(template, stop=stop_sequence).lstrip()
@@ -202,14 +201,18 @@ DO NOT use these examples in the Response.
             BOTNAME=self.char_name,
             system_message=system_message
         )
-
         bottom_template = """
+<END OF CONVERSATION>
+
 <START OF CONVERSATION>
 {{history}}
 {memory_context}
+
+### Instruction:
 {{input}}
+
 ### Response:
-{BOTNAME}:"""
+{BOTNAME}:*"""
 
         MAIN_TEMPLATE = top_template + bottom_template.format(
             memory_context=memory_context,
@@ -235,7 +238,7 @@ DO NOT use these examples in the Response.
 
         response = await self.detect_and_replace_out(response_text["response"])
 
-        return response
+        return f"*{response}"
 
     # this command receives a name, channel_id, and message_content then adds it to history
     async def add_history(self, name, channel_id, message_content) -> None:
@@ -282,6 +285,20 @@ Tensor: Got the intel, AusBoss! 👀📚 The Legend of Zelda: Breath of the Wild
 
 ### Response:
 {BOTNAME}:"""
+
+        template = """
+        <END OF CONVERSATION>
+
+        <START OF CONVERSATION>
+        {{history}}
+        {memory_context}
+
+        ### Instruction:
+        {{input}}
+
+        ### Response:
+        {BOTNAME}:*"""
+
         PROMPT = PromptTemplate(
             input_variables=["history", "input"], template=AGENTTEMPLATE
         )
