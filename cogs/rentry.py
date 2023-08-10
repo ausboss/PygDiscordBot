@@ -14,7 +14,7 @@ from json import loads as json_loads
 import csv
 from bs4 import BeautifulSoup
 import aiohttp
-from helpers.constants import BOTNAME
+
 _headers = {"Referer": 'https://rentry.co'}
 
 

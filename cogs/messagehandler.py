@@ -29,7 +29,7 @@ class ListenerCog(commands.Cog, name="listener"):
         self.listen_only_mode = {str(guild_id): False for guild_id in self.bot.channel_list}
         self.bot.sent_last_message = {str(channel_id): True for channel_id in self.bot.channel_list}
         self.timer_running = {}
-        self.ping_mode = True
+        self.ping_mode = False
 
 
     # create a function that will take a message and add it to the message dictionary wit the channel id as the key. if the key already exists, it will append the message to the list of messages
@@ -269,7 +269,7 @@ class ListenerCog(commands.Cog, name="listener"):
             mentions_bot = self.bot.user in message.mentions
 
             # Checking if the message contains the bot's name or any of the aliases
-            contains_bot_name = self.bot.user.name.lower() in message.clean_content.lower() or any(alias.lower() in message.clean_content.lower() for alias in ALIASES)
+            contains_bot_name = self.bot.user.name.lower() in message.clean_content.lower() or any(alias.lower() in message.clean_content.lower() for alias in self.aliases)
 
             # The message is considered directed at the bot if `is_reply_to_bot`, `mentions_bot`, or `contains_bot_name` is true,
             # but `is_false_positive` is not true.
