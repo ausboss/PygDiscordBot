@@ -17,10 +17,15 @@ CHAT_HISTORY_LINE_LIMIT = int(os.getenv("CHAT_HISTORY_LINE_LIMIT"))
 STOP_SEQUENCES = os.getenv("STOP_SEQUENCES")
 
 # Replace escaped newline sequences with actual newline characters
-STOP_SEQUENCES = STOP_SEQUENCES.replace("\\n", "\n")
+try:
+    STOP_SEQUENCES = STOP_SEQUENCES.replace("\\n", "\n")
+    # Split stop sequences into a list
+    STOP_SEQUENCES = STOP_SEQUENCES.split(",")
+except AttributeError:
+    print("STOP_SEQUENCES not provided in .env")
+    pass
 
-# Split stop sequences into a list
-STOP_SEQUENCES = STOP_SEQUENCES.split(",")
+
 
 def embedder(msg):
     embed = discord.Embed(
