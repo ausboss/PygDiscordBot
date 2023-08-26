@@ -3,5 +3,5 @@ python-dotenv
 Pillow
 discord.py
 transformers
-langchain
+langchain==0.0.271
 torch

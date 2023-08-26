@@ -5,7 +5,8 @@ import discord
 from PIL import Image
 from pathlib import Path
 import base64
-from langchain.llms import KoboldApiLLM, TextGen, OpenAI
+from helpers.textgen import TextGen
+from langchain.llms import KoboldApiLLM, OpenAI
 from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Bot
