@@ -26,12 +26,8 @@ except AttributeError:
     pass
 
 
-
 def embedder(msg):
-    embed = discord.Embed(
-        description=f"{msg}",
-        color=0x9C84EF
-    )
+    embed = discord.Embed(description=f"{msg}", color=0x9C84EF)
     return embed
 
 
@@ -45,7 +41,6 @@ class Chatbot:
         self.histories = {}  # Initialize the history dictionary
         self.stop_sequences = {}  # Initialize the stop sequences dictionary
         # select KoboldApiLLM or TextGen based on endpoint
-
 
         with open("chardata.json", "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -82,11 +77,16 @@ class Chatbot:
 
         async for message in channel.history(limit=None):
             # Skip messages that start with '.' or '/'
-            if message.content.startswith('.') or message.content.startswith('/'):
+            if message.content.startswith(".") or message.content.startswith("/"):
                 continue
 
-            messages.append((message.author.display_name, message.channel.id,
-                            message.clean_content.replace("\n", " ")))
+            messages.append(
+                (
+                    message.author.display_name,
+                    message.channel.id,
+                    message.clean_content.replace("\n", " "),
+                )
+            )
 
             # Break the loop once we have at least 5 non-skipped messages
             if len(messages) >= CHAT_HISTORY_LINE_LIMIT:
@@ -99,8 +99,7 @@ class Chatbot:
 
     async def detect_and_replace_out(self, message_content):
         if f"\n{self.char_name}:":
-            message_content = message_content.replace(
-                f"\n{self.char_name}:", "")
+            message_content = message_content.replace(f"\n{self.char_name}:", "")
         return message_content
 
     # this command will detect if @botname is in the message and replace it with an empty string
@@ -125,7 +124,6 @@ class Chatbot:
             messages_to_add_minus_one = messages_to_add[:-1]
             # Add the messages to the memory
             for message in messages_to_add_minus_one:
-
                 name = message[0]
                 channel_ids = str(message[1])
                 message = message[2]
@@ -155,27 +153,23 @@ class Chatbot:
         with open(convo_filename, "r", encoding="utf-8") as f:
             lines = f.readlines()
             num_lines = min(len(lines), self.bot.num_lines_to_keep)
-            self.conversation_history = "<START>\n" + \
-                "".join(lines[-num_lines:])
-
+            self.conversation_history = "<START>\n" + "".join(lines[-num_lines:])
 
     async def generate_response(self, message, message_content) -> None:
         channel_id = str(message.channel.id)
         name = message.author.display_name
         memory = await self.get_memory_for_channel(str(channel_id))
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
-        print(f"stoop sequence: {stop_sequence}")
         print(f"stop sequences: {stop_sequence}")
         formatted_message = f"{name}: {message_content}"
-        MAIN_TEMPLATE = f'''
+        MAIN_TEMPLATE = f"""
 {self.top_character_info}
 {{history}}
 {{input}}
-{self.char_name}:'''
+{self.char_name}:"""
 
         PROMPT = PromptTemplate(
-            input_variables=["history", "input"],
-            template=MAIN_TEMPLATE
+            input_variables=["history", "input"], template=MAIN_TEMPLATE
         )
 
         # Create a conversation chain using the channel-specific memory
@@ -189,9 +183,9 @@ class Chatbot:
         response_text = conversation(input_dict)
         response = await self.detect_and_replace_out(response_text["response"])
         with open(self.convo_filename, "a", encoding="utf-8") as f:
-            f.write(f'{message.author.display_name}: {message_content}\n')
+            f.write(f"{message.author.display_name}: {message_content}\n")
             # add a separator between
-            f.write(f'{self.char_name}: {response_text}\n')
+            f.write(f"{self.char_name}: {response_text}\n")
 
         return response
 
@@ -228,9 +222,14 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         else:
             server_name = message.author.name
         chatlog_filename = os.path.join(
-            self.chatlog_dir, f"{self.chatbot.char_name}_{server_name}_chatlog.log")
-        if message.guild and self.chatbot.convo_filename != chatlog_filename or \
-                not message.guild and self.chatbot.convo_filename != chatlog_filename:
+            self.chatlog_dir, f"{self.chatbot.char_name}_{server_name}_chatlog.log"
+        )
+        if (
+            message.guild
+            and self.chatbot.convo_filename != chatlog_filename
+            or not message.guild
+            and self.chatbot.convo_filename != chatlog_filename
+        ):
             await self.chatbot.set_convo_filename(chatlog_filename)
         response = await self.chatbot.generate_response(message, message_content)
         return response

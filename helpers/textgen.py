@@ -211,8 +211,10 @@ class TextGen(LLM):
         else:
             url = f"{self.model_url}/api/v1/generate"
             params = self._get_parameters(stop)
-            params['stopping_strings'] = params.pop('stop')  # Rename 'stop' to 'stopping_strings'
-            print(params['stopping_strings'])  # TODO: Remove this line
+            params["stopping_strings"] = params.pop(
+                "stop"
+            )  # Rename 'stop' to 'stopping_strings'
+            print(params["stopping_strings"])  # TODO: Remove this line
             request = params.copy()
             request["prompt"] = prompt
             print(request)  # TODO: Remove this line
@@ -271,7 +273,9 @@ class TextGen(LLM):
             )
 
         params = {**self._get_parameters(stop), **kwargs}
-        params['stopping_strings'] = params.pop('stop') # Rename 'stop' to 'stopping_strings'
+        params["stopping_strings"] = params.pop(
+            "stop"
+        )  # Rename 'stop' to 'stopping_strings'
 
         url = f"{self.model_url}/api/v1/stream"
 
