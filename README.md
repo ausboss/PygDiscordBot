@@ -1,6 +1,8 @@
 # update
 apparently people still use this. I appreciate that so I will start improving the main repo again. I added a few changes. 
 
+-added max tokens to env, for kobold the max is 512, so dont go over that or you will get an error
+
 -There is now stop token support. Update your .envs based on the new sample env. just list words that you dont want to see the bot say divided by , 
 
 -bot will now say your display name and not your username
@@ -30,8 +32,11 @@ Please note that Discord only allows bots to be renamed twice per hour.
 # More Information
 
 - DISCORD_BOT_TOKEN: Obtain this token from the Discord Developer Portal. [Guide for setting that up](https://rentry.org/discordbotguide)
-- ENDPOINT: Set the endpoint variable with the KoboldAI URL obtained from this [colab](https://colab.research.google.com/github/koboldai/KoboldAI-Client/blob/main/colab/GPU.ipynb). Simply press Shift + Enter to run the cells until you acquire the API URL. Alternatively, if you have a powerful GPU, you can run Kobold locally using [Kobold](https://github.com/KoboldAI/KoboldAI-Client) or its [Kobold 4bit fork](https://github.com/0cc4m/KoboldAI).
-  For more information on running it locally, refer to: [Local Installation (GPU)](https://docs.alpindale.dev/local-installation-(gpu)/kobold/)
+- ENDPOINT: I recommend using this
+
+https://github.com/oobabooga/text-generation-webui#one-click-installers
+
+after you install it you will want to run with the --api parameter, or select it in the webui. Then you can set the .env endpoint as http://127.0.0.1:5000/ assuming that you are running it locally.
 
 # Slash Commands
 
