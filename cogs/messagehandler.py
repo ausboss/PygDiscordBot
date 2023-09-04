@@ -105,12 +105,12 @@ class ListenerCog(commands.Cog, name="listener"):
             if channel_id in self.parent.bot.channel_list:
                 if self.values[0] == "Enable":
                     self.parent.listen_only_mode[str(channel_id)] = True
-                    await interaction.response.send_message(embed=embedder(f".Listen-only mode is now set to {self.parent.listen_only_mode[channel_id]}"), delete_after=5)
+                    await interaction.response.reply(embed=embedder(f".Listen-only mode is now set to {self.parent.listen_only_mode[channel_id]}"), delete_after=5)
                 else:
                     self.parent.listen_only_mode[str(channel_id)] = False
-                    await interaction.response.send_message(embed=embedder(f".Listen-only mode is now set to {self.parent.listen_only_mode[channel_id]}"), delete_after=5)
+                    await interaction.response.reply(embed=embedder(f".Listen-only mode is now set to {self.parent.listen_only_mode[channel_id]}"), delete_after=5)
             else:
-                await interaction.response.send_message(embed=embedder(f".Listen-only mode is not enabled in this channel"), delete_after=5)
+                await interaction.response.reply(embed=embedder(f".Listen-only mode is not enabled in this channel"), delete_after=5)
 
                 
 
@@ -256,6 +256,8 @@ class ListenerCog(commands.Cog, name="listener"):
         
         if message.channel.id not in [int(channel_id) for channel_id in self.bot.channel_list] and message.guild is not None:
             return
+        
+        print(message.content)
 
         if not self.ping_mode:
         # We define is_false_positive first.

@@ -14,7 +14,6 @@ from json import loads as json_loads
 import csv
 from bs4 import BeautifulSoup
 import aiohttp
-
 _headers = {"Referer": 'https://rentry.co'}
 
 
@@ -23,7 +22,8 @@ class UrllibClient:
 
     def __init__(self):
         self.cookie_jar = http.cookiejar.CookieJar()
-        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cookie_jar))
+        self.opener = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(self.cookie_jar))
         urllib.request.install_opener(self.opener)
 
     def get(self, url, headers={}):
@@ -91,7 +91,7 @@ def read_csv():
             writer = csv.writer(file)
             writer.writerow(['url', 'edit_code'])
         entries = []
-    
+
     return entries
 
 
@@ -126,7 +126,7 @@ class RentryCog(commands.Cog, name="rentry_cog"):
             self.rentry_dict[url][0] = edit_code
         return self.rentry_dict
 
-    # this function takes a rentry url and gets the edit code 
+    # this function takes a rentry url and gets the edit code
     async def get_edit_code(self, url):
         full_url = f"https://rentry.co/{url}"
         with open('notebook_links.csv', 'r') as file:
@@ -137,7 +137,7 @@ class RentryCog(commands.Cog, name="rentry_cog"):
                     edit_code = row[1]
                     break
         return edit_code
-    
+
     # Create a select menu for the rentry links
     class RentrySelect(discord.ui.Select):
 
@@ -147,14 +147,15 @@ class RentryCog(commands.Cog, name="rentry_cog"):
             self.bot = bot  # Add this line
 
             options = [
-                discord.SelectOption(label=f"url: {rentry[0].split('https://rentry.co/')[1]}", description=f"{rentry[2]}") 
+                discord.SelectOption(
+                    label=f"url: {rentry[0].split('https://rentry.co/')[1]}", description=f"{rentry[2]}")
                 for rentry in self.parent.rentry_links
             ]
             super().__init__(
                 placeholder="Select a rentry",
                 options=options
             )
-        
+
         async def callback(self, interaction: discord.Interaction):
             url_part = self.values[0].split(' ')[1]
             full_url = f"https://rentry.co/{url_part}"
@@ -177,16 +178,17 @@ class RentryCog(commands.Cog, name="rentry_cog"):
         def __init__(self, parent):
             self.parent = parent
             super().__init__()
-           
-            self.add_item(RentryCog.RentrySelect(parent, parent.bot))  # Pass the bot object here
+
+            # Pass the bot object here
+            self.add_item(RentryCog.RentrySelect(parent, parent.bot))
 
     # shows a menu of rentry links and then displays the selected rentry contents
     @app_commands.command(name="viewrentry", description="View a rentry")
     async def view_rentry(self, interaction: discord.Interaction):
-        view = self.RentryView(self)  
+        view = self.RentryView(self)
         await interaction.response.send_message(
-        'Select a rentry',
-        view=view)
+            'Select a rentry',
+            view=view)
 
     # takes the ending url of a rentry and a string then appends the string to the rentry
     @app_commands.command(name="appendrentry", description="append to a rentry")
@@ -215,7 +217,8 @@ class RentryCog(commands.Cog, name="rentry_cog"):
         # Initialize an UrllibClient and a SimpleCookie
         client, cookie = UrllibClient(), SimpleCookie()
         # Load the cookies from the client session
-        cookie.load(vars(client.get('https://rentry.co'))['headers']['Set-Cookie'])
+        cookie.load(vars(client.get('https://rentry.co'))
+                    ['headers']['Set-Cookie'])
         csrftoken = cookie['csrftoken'].value
 
         # Create a payload with the CSRF token and the text
@@ -225,7 +228,8 @@ class RentryCog(commands.Cog, name="rentry_cog"):
         }
 
         # Post the request to create a new rentry
-        response = client.post('https://rentry.co/api/new', payload, headers=_headers)
+        response = client.post('https://rentry.co/api/new',
+                               payload, headers=_headers)
 
         # Extract url and edit_code from the response data
         response_data = json_loads(response.data)

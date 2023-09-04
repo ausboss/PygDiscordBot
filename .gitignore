@@ -1,10 +1,11 @@
 *.pyc
 *.swp
 *.egg-info
-__pycache__
+*__pycache__
 .DS_Store
 .idea
 # Generated files
+/*__pycache__
 backend/oasst-openapi.json
 .env
 .venv
@@ -24,4 +25,6 @@ discord.log
 *.db
 database/database.db
 helpers/text.txt
+config.json
+config.json
 config.json

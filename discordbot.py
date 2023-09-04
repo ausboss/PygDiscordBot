@@ -77,6 +77,7 @@ bot.owners = [int(x) for x in OWNERS.split(",")]
 bot.sent_last_message = {}
 bot.name = config["BOTNAME"]
 
+
 class LoggingFormatter(logging.Formatter):
     # Colors
     black = "\x1b[30m"
@@ -115,7 +116,8 @@ logger.setLevel(logging.INFO)
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(LoggingFormatter())
 # File handler
-file_handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="w")
+file_handler = logging.FileHandler(
+    filename="discord.log", encoding="utf-8", mode="w")
 file_handler_formatter = logging.Formatter(
     "[{asctime}] [{levelname:<8}] {name}: {message}", "%Y-%m-%d %H:%M:%S", style="{"
 )
@@ -150,7 +152,8 @@ async def on_ready():
     bot.logger.info(f"Logged in as {bot.user.name}")
     bot.logger.info(f"discord.py API version: {discord.__version__}")
     bot.logger.info(f"Python version: {platform.python_version()}")
-    bot.logger.info(f"Running on: {platform.system()} {platform.release()} ({os.name})")
+    bot.logger.info(
+        f"Running on: {platform.system()} {platform.release()} ({os.name})")
     bot.logger.info("-------------------")
     status_task.start()
     if config["sync_commands_globally"]:
@@ -168,7 +171,8 @@ async def on_ready():
                 channel_name = channel.name
                 bot.logger.info(f"{guild.name} \ {channel_name}")
             else:
-                bot.logger.info(f"Channel with ID {items} is not a text channel")
+                bot.logger.info(
+                    f"Channel with ID {items} is not a text channel")
         except AttributeError:
             bot.logger.info(
                 "\n\n\n\nERROR: Unable to retrieve channel from .env \nPlease make sure you're using a valid channel ID, not a server ID."
@@ -262,16 +266,16 @@ async def on_command_error(context: Context, error) -> None:
     elif isinstance(error, commands.MissingPermissions):
         embed = discord.Embed(
             description="You are missing the permission(s) `"
-            +", ".join(error.missing_permissions)
-            +"` to execute this command!",
+            + ", ".join(error.missing_permissions)
+            + "` to execute this command!",
             color=0xE02B2B,
         )
         await context.send(embed=embed)
     elif isinstance(error, commands.BotMissingPermissions):
         embed = discord.Embed(
             description="I am missing the permission(s) `"
-            +", ".join(error.missing_permissions)
-            +"` to fully perform this command!",
+            + ", ".join(error.missing_permissions)
+            + "` to fully perform this command!",
             color=0xE02B2B,
         )
         await context.send(embed=embed)
@@ -305,3 +309,4 @@ async def load_cogs() -> None:
 asyncio.run(load_cogs())
 asyncio.run(init_db())
 bot.run(DISCORD_BOT_TOKEN)
+1104063208173609092

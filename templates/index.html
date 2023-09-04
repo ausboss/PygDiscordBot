@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Blog</title>
+    <link rel="stylesheet" href="{% static 'css/blog.css' %}">
+</head>
+<body>
+    <div id="content">
+        <div id="header">
+            <h1><a href="/">My Blog</a></h1>
+        </div>
+        <div id="sidebar">
+            <h2>My Blog</h2>
+            <p>This is my blog.</p>
+        </div>
+        <div id="entries">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+</body>
+</html>
