@@ -22,6 +22,10 @@ DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 ENDPOINT = str(os.getenv("ENDPOINT"))
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 CHAT_HISTORY_LINE_LIMIT = os.getenv("CHAT_HISTORY_LINE_LIMIT")
+try:
+    ALWAYS_REPLY = os.getenv("ALWAYS_REPLY")
+except:
+    ALWAYS_REPLY = True
 if os.getenv("MAX_NEW_TOKENS") is not None:
     MAX_NEW_TOKENS = os.getenv("MAX_NEW_TOKENS")
 else:
@@ -34,6 +38,7 @@ if len(bot.endpoint.split("/api")) > 0:
     bot.endpoint = bot.endpoint.split("/api")[0]
 bot.chatlog_dir = "chatlog_dir"
 bot.endpoint_connected = False
+bot.ping_mode = ALWAYS_REPLY.title()
 bot.channel_id = CHANNEL_ID
 bot.num_lines_to_keep = int(CHAT_HISTORY_LINE_LIMIT)
 bot.guild_ids = [int(x) for x in CHANNEL_ID.split(",")]
