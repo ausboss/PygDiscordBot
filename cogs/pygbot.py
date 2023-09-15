@@ -191,6 +191,7 @@ class Chatbot:
 
         # this command receives a name, channel_id, and message_content then adds it to history
 
+    # this command receives a name, channel_id, and message_content then adds it to history
     async def add_history(self, name, channel_id, message_content) -> None:
         # get the memory for the channel
         memory = await self.get_memory_for_channel(str(channel_id))
@@ -216,7 +217,8 @@ class ChatbotCog(commands.Cog, name="chatbot"):
     # Normal Chat handler
 
     @commands.command(name="chat")
-    async def chat_command(self, message, message_content) -> None:
+    # response = await self.bot.get_cog("chatbot").chat_command(message.author.display_name, message.channel.id, message.clean_content, message)
+    async def chat_command(self, name, channel_id, message_content, message) -> None:
         if message.guild:
             server_name = message.channel.name
         else:
@@ -233,7 +235,13 @@ class ChatbotCog(commands.Cog, name="chatbot"):
             await self.chatbot.set_convo_filename(chatlog_filename)
         response = await self.chatbot.generate_response(message, message_content)
         return response
-
+    
+    # No Response Handler
+    @commands.command(name="chatnr")
+    # this function needs to take a name, channel_id, and message_content then send to history
+    async def chat_command_nr(self, name, channel_id, message_content) -> None:
+        await self.chatbot.add_history(name, str(channel_id), message_content)
+        return None
 
 async def setup(bot):
     # add chatbot cog to bot
