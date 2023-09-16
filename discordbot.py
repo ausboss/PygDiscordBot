@@ -38,7 +38,10 @@ if len(bot.endpoint.split("/api")) > 0:
     bot.endpoint = bot.endpoint.split("/api")[0]
 bot.chatlog_dir = "chatlog_dir"
 bot.endpoint_connected = False
-bot.ping_mode = ALWAYS_REPLY.title()
+try:
+    bot.ping_mode = ALWAYS_REPLY.title()
+except:
+    bot.ping_mode = True
 bot.channel_id = CHANNEL_ID
 bot.num_lines_to_keep = int(CHAT_HISTORY_LINE_LIMIT)
 bot.guild_ids = [int(x) for x in CHANNEL_ID.split(",")]

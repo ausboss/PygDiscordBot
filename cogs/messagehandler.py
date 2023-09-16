@@ -28,7 +28,7 @@ class ListenerCog(commands.Cog, name="listener"):
         # create a dictionary of messages where the channel id is the key and the value is the message
         self.message_dict = {}
         # self.listen_only_mode needs to be a dictionary with the guild id as the key and the value as the boolean
-        self.listen_only_mode = {str(guild_id): False for guild_id in self.bot.guild_ids}
+        # self.listen_only_mode = {str(guild_id): False for guild_id in self.bot.guild_ids}
         # self.bot.sent_last_message = {str(channel_id): True for channel_id in self.bot.channel_list}
         self.timer_running = {}
         
