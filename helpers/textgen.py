@@ -280,6 +280,7 @@ class TextGen(LLM):
         url = f"{self.model_url}/api/v1/stream"
 
         request = params.copy()
+        print(request)  # TODO: Remove this line
         request["prompt"] = prompt
 
         websocket_client = websocket.WebSocket()
