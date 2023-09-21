@@ -9,6 +9,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import os
+import asyncio
 
 
 # load environment STOP_SEQUENCES variables and split them into a list by comma
@@ -127,7 +128,7 @@ class Chatbot:
                 name = message[0]
                 channel_ids = str(message[1])
                 message = message[2]
-                print(f"{name}: {message}")
+                #print(f"{name}: {message}")
                 await self.add_history(name, channel_ids, message)
 
         # self.memory = self.histories[channel_id]
@@ -160,7 +161,7 @@ class Chatbot:
         name = message.author.display_name
         memory = await self.get_memory_for_channel(str(channel_id))
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
-        print(f"stop sequences: {stop_sequence}")
+        #print(f"stop sequences: {stop_sequence}")
         formatted_message = f"{name}: {message_content}"
         MAIN_TEMPLATE = f"""
 {self.top_character_info}
@@ -176,11 +177,11 @@ class Chatbot:
         conversation = ConversationChain(
             prompt=PROMPT,
             llm=self.llm,
-            verbose=True,
+            #verbose=True,
             memory=memory,
         )
         input_dict = {"input": formatted_message, "stop": stop_sequence}
-        response_text = conversation(input_dict)
+        response_text = await conversation.acall(input_dict)
         response = await self.detect_and_replace_out(response_text["response"])
         with open(self.convo_filename, "a", encoding="utf-8") as f:
             f.write(f"{message.author.display_name}: {message_content}\n")
@@ -199,7 +200,7 @@ class Chatbot:
         formatted_message = f"{name}: {message_content}"
 
         # add the message to the memory
-        print(f"adding message to memory: {formatted_message}")
+        #print(f"adding message to memory: {formatted_message}")
         memory.add_input_only(formatted_message)
         return None
 
@@ -209,6 +210,7 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         self.bot = bot
         self.chatlog_dir = bot.chatlog_dir
         self.chatbot = Chatbot(bot)
+        self.current_task = None
 
         # create chatlog directory if it doesn't exist
         if not os.path.exists(self.chatlog_dir):
@@ -233,8 +235,21 @@ class ChatbotCog(commands.Cog, name="chatbot"):
             and self.chatbot.convo_filename != chatlog_filename
         ):
             await self.chatbot.set_convo_filename(chatlog_filename)
-        response = await self.chatbot.generate_response(message, message_content)
-        return response
+        
+        # Check if the task is still running
+        print(f"The current task is: {self.current_task}")
+        if self.current_task is not None and not self.current_task.done():
+            print("Cancelling previous task")
+            self.current_task.cancel()
+
+        # Create new task and store in current_task
+        self.current_task = asyncio.create_task(self.chatbot.generate_response(message, message_content))
+        try:
+            response = await self.current_task
+            return response
+        except asyncio.CancelledError:
+            print("Request cancelled")
+            return None
     
     # No Response Handler
     @commands.command(name="chatnr")
