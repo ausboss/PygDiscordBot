@@ -177,7 +177,7 @@ class Chatbot:
         conversation = ConversationChain(
             prompt=PROMPT,
             llm=self.llm,
-            #verbose=True,
+            verbose=True,
             memory=memory,
         )
         input_dict = {"input": formatted_message, "stop": stop_sequence}
@@ -210,7 +210,10 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         self.bot = bot
         self.chatlog_dir = bot.chatlog_dir
         self.chatbot = Chatbot(bot)
+
+        # Store current task and last message here
         self.current_task = None
+        self.last_message = None
 
         # create chatlog directory if it doesn't exist
         if not os.path.exists(self.chatlog_dir):
@@ -237,18 +240,20 @@ class ChatbotCog(commands.Cog, name="chatbot"):
             await self.chatbot.set_convo_filename(chatlog_filename)
         
         # Check if the task is still running
-        print(f"The current task is: {self.current_task}")
+        #print(f"The current task is: {self.current_task}") # for debugging purposes
         if self.current_task is not None and not self.current_task.done():
-            print("Cancelling previous task")
+            # Cancelling previous task, add last message to the history
+            await self.chatbot.add_history(name, str(channel_id), self.last_message)
             self.current_task.cancel()
 
         # Create new task and store in current_task
+        self.last_message = message_content
         self.current_task = asyncio.create_task(self.chatbot.generate_response(message, message_content))
         try:
             response = await self.current_task
             return response
         except asyncio.CancelledError:
-            print("Request cancelled")
+            print(f"Cancelled {self.chatbot.char_name}'s current response, regenerate another reply...")
             return None
     
     # No Response Handler

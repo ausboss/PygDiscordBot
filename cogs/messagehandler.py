@@ -249,17 +249,18 @@ class ListenerCog(commands.Cog, name="listener"):
                 message,
             )
             await self.add_message_to_dict(message, message.clean_content)
-            async with message.channel.typing():
-                # If the response is more than 2000 characters, split it
-                chunks = [response[i : i + 1998] for i in range(0, len(response), 1998)]
-                for chunk in chunks:
-                    print(chunk)
-                    response_obj = await message.channel.send(chunk)
-                    await self.add_message_to_dict(
-                        response_obj, response_obj.clean_content
-                    )
-                    # self.bot.sent_last_message[str(message.channel.id)] = True
-                    # await log_message(response_obj)
+            if response:
+                async with message.channel.typing():
+                    # If the response is more than 2000 characters, split it
+                    chunks = [response[i : i + 1998] for i in range(0, len(response), 1998)]
+                    for chunk in chunks:
+                        print(chunk)
+                        response_obj = await message.channel.send(chunk)
+                        await self.add_message_to_dict(
+                            response_obj, response_obj.clean_content
+                        )
+                        # self.bot.sent_last_message[str(message.channel.id)] = True
+                        # await log_message(response_obj)
 
     async def set_listen_only_mode_timer(self, channel_id):
         # Start the timer
