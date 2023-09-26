@@ -31,7 +31,7 @@ class ListenerCog(commands.Cog, name="listener"):
         # self.bot.sent_last_message = {str(channel_id): True for channel_id in self.bot.channel_list}
         self.timer_running = {}
 
-        self.ping_mode = bot.ping_mode
+        self.ping_mode = self.bot.always_reply
 
     # create a function that will take a message and add it to the message dictionary wit the channel id as the key. if the key already exists, it will append the message to the list of messages
     async def add_message_to_dict(self, message, message_content):
