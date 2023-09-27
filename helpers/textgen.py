@@ -271,6 +271,9 @@ class TextGen(LLM):
             async with aiohttp.ClientSession() as session:
                 url = f"{self.model_url}/api/v1/generate"
                 params = self._get_parameters(stop)
+                params["stopping_strings"] = params.pop(
+                    "stop"
+                )  # Rename 'stop' to 'stopping_strings'
                 request = params.copy()
                 request["prompt"] = prompt
                 #response = requests.post(url, json=request)
