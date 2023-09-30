@@ -30,33 +30,83 @@ CHAT_HISTORY_LINE_LIMIT = 0
 
 
 class Chatbot:
-
     def __init__(self, bot):
         self.bot = bot
         self.histories = {}  # Initialize the history dictionary
         self.stop_sequences = {}  # Initialize the stop sequences dictionary
         self.bot.logger.info("Endpoint: " + str(self.bot.endpoint))
-        self.char_name = bot.config['BOTNAME']
-        self.k = bot.config['k']
-        self.memory = CustomBufferWindowMemory(
-            k=self.k, ai_prefix=self.char_name)
+        self.char_name = bot.config["BOTNAME"]
+        self.k = bot.config["k"]
+        self.memory = CustomBufferWindowMemory(k=self.k, ai_prefix=self.char_name)
         self.chat_participants = {}
         self.bot.chat_participants = self.chat_participants
         self.history = "[Beginning of Conversation]"
         self.llm = self.bot.llm
+
     # if message starts with . or / then it is a command and should not be appended to the conversation history. do not use flatten use append
 
+    # async def get_messages_by_channel(self, channel_id):
+    #     channel = self.bot.get_channel(int(channel_id))
+    #     messages = []
+
+    #     async for message in channel.history(limit=None):
+    #         # Skip messages that start with '.' or '/'
+    #         if message.content.startswith('.') or message.content.startswith('/'):
+    #             continue
+
+    #         messages.append((message.author.display_name, message.channel.id,
+    #                         message.clean_content.replace("\n", " ")))
+
+    #         # Break the loop once we have at least 5 non-skipped messages
+    #         if len(messages) >= CHAT_HISTORY_LINE_LIMIT:
+    #             break
+
+    #     # Return the first 5 non-skipped messages
+    #     return messages[:CHAT_HISTORY_LINE_LIMIT]
+
+    # async def get_memory_for_channel(self, channel_id):
+    #     """Get the memory for the channel with the given ID. If no memory exists yet, create one."""
+    #     channel_id = str(channel_id)
+    #     if channel_id not in self.histories:
+    #         # Create a new memory for the channel
+
+    #         self.histories[channel_id] = CustomBufferWindowMemory(
+    #             k=CHAT_HISTORY_LINE_LIMIT, ai_prefix=self.char_name
+    #         )
+    #         # Get the last 5 messages from the channel in a list
+    #         messages = await self.get_messages_by_channel(channel_id)
+    #         # Exclude the last message using slicing
+    #         messages_to_add = messages[-2::-1]
+    #         messages_to_add_minus_one = messages_to_add[:-1]
+    #         # Add the messages to the memory
+    #         for message in messages_to_add_minus_one:
+
+    #             name = message[0]
+    #             channel_ids = str(message[1])
+    #             message = message[2]
+    #             print(f"{name}: {message}")
+    #             await self.add_history(name, channel_ids, message)
+
+    #     # self.memory = self.histories[channel_id]
+    #     return self.histories[channel_id]
+
+    # if message starts with . or / then it is a command and should not be appended to the conversation history. do not use flatten use append
     async def get_messages_by_channel(self, channel_id):
         channel = self.bot.get_channel(int(channel_id))
         messages = []
 
         async for message in channel.history(limit=None):
             # Skip messages that start with '.' or '/'
-            if message.content.startswith('.') or message.content.startswith('/'):
+            if message.content.startswith(".") or message.content.startswith("/"):
                 continue
 
-            messages.append((message.author.display_name, message.channel.id,
-                            message.clean_content.replace("\n", " ")))
+            messages.append(
+                (
+                    message.author.display_name,
+                    message.channel.id,
+                    message.clean_content.replace("\n", " "),
+                )
+            )
 
             # Break the loop once we have at least 5 non-skipped messages
             if len(messages) >= CHAT_HISTORY_LINE_LIMIT:
@@ -64,6 +114,8 @@ class Chatbot:
 
         # Return the first 5 non-skipped messages
         return messages[:CHAT_HISTORY_LINE_LIMIT]
+
+    # this command will detect if the bot is trying to send  \nself.char_name: in its message and replace it with an empty string
 
     async def get_memory_for_channel(self, channel_id):
         """Get the memory for the channel with the given ID. If no memory exists yet, create one."""
@@ -81,7 +133,6 @@ class Chatbot:
             messages_to_add_minus_one = messages_to_add[:-1]
             # Add the messages to the memory
             for message in messages_to_add_minus_one:
-
                 name = message[0]
                 channel_ids = str(message[1])
                 message = message[2]
@@ -97,7 +148,7 @@ class Chatbot:
             self.stop_sequences[channel_id] = [
                 "### Instruction",
                 "### Response",
-                "\n\n"
+                "\n\n",
             ]
         if name_token not in self.stop_sequences[channel_id]:
             self.stop_sequences[channel_id].append(name_token)
@@ -110,8 +161,7 @@ class Chatbot:
 
         # Format the date and time as desired
         formatted_time = now.strftime("%I:%M %p")  # 10:23 AM
-        formatted_date = now.strftime(
-            "%A, %B %dth %Y")  # Tuesday, July 18th 2023
+        formatted_date = now.strftime("%A, %B %dth %Y")  # Tuesday, July 18th 2023
 
         # Create the final message
         message = f"It is currently {formatted_time} CST on {formatted_date}"
@@ -119,9 +169,7 @@ class Chatbot:
 
     async def get_chat_participants_for_channel(self, channel_id, name):
         if channel_id not in self.chat_participants:
-            self.chat_participants[channel_id] = [
-                self.char_name
-            ]
+            self.chat_participants[channel_id] = [self.char_name]
         if name not in self.chat_participants[channel_id]:
             self.chat_participants[channel_id].append(name)
         return self.chat_participants[channel_id]
@@ -129,8 +177,7 @@ class Chatbot:
     # this command will detect if the bot is trying to send  \nself.char_name: in its message and replace it with an empty string
     async def detect_and_replace_out(self, message_content):
         if f"\n{self.char_name}:":
-            message_content = message_content.replace(
-                f"\n{self.char_name}:", "")
+            message_content = message_content.replace(f"\n{self.char_name}:", "")
         return message_content
 
     # this command will detect if @botname is in the message and replace it with an empty string
@@ -140,26 +187,28 @@ class Chatbot:
         return message_content
 
     async def force_generate_response(self, channel_id) -> None:
-
         memory = await self.get_memory_for_channel(str(channel_id))
 
-        stop_sequence = await self.get_stop_sequence_for_channel(channel_id, self.char_name)
+        stop_sequence = await self.get_stop_sequence_for_channel(
+            channel_id, self.char_name
+        )
         await self.get_chat_participants_for_channel(channel_id, self.char_name)
 
-        history = memory.load_memory_variables('inputs')
+        history = memory.load_memory_variables("inputs")
         # Split the history string into lines, each line is a separate message
-        message_list = history['history'].split('\n')
+        message_list = history["history"].split("\n")
         # Get only the last 10*2 messages in the list
-        recent_messages = message_list[-self.K*2:]
+        recent_messages = message_list[-self.K * 2 :]
         # Join all recent messages with newline and create the final messages string
-        messages = '\n'.join(recent_messages)
+        messages = "\n".join(recent_messages)
         system_message = await self.generate_system_message()
         with open("prompt.txt", "r", encoding="utf-8") as f:
             prompt = f.read()
-        top_template = prompt.format(BOTNAME=self.char_name,
-                                     system_message=system_message,
-                                     memory_context=memory_context
-                                     )
+        top_template = prompt.format(
+            BOTNAME=self.char_name,
+            system_message=system_message,
+            memory_context=memory_context,
+        )
 
         bottom_template = """
 <END OF CONVERSATION>
@@ -169,7 +218,9 @@ class Chatbot:
 
 ### Response:
 {BOTNAME}: *"""
-        template = top_template + bottom_template.format(messages=messages, BOTNAME=self.char_name)
+        template = top_template + bottom_template.format(
+            messages=messages, BOTNAME=self.char_name
+        )
 
         response_text = self.llm(template, stop=stop_sequence).lstrip()
 
@@ -178,9 +229,16 @@ class Chatbot:
 
         return response_text
 
-    async def generate_response(self, name, channel_id, message_content, message) -> None:
+    async def generate_response(
+        self, name, channel_id, message_content, message
+    ) -> None:
         try:
-            memory_context = await self.bot.get_cog("memory_cog").query_memory_live(message.author.display_name, message.channel.id, message.clean_content.replace(self.char_name, ""), message)
+            memory_context = await self.bot.get_cog("memory_cog").query_memory_live(
+                message.author.display_name,
+                message.channel.id,
+                message.clean_content.replace(self.char_name, ""),
+                message,
+            )
             if memory_context != "":
                 memory_context = f"### Input:\n{memory_context}"
         except:
@@ -189,34 +247,28 @@ class Chatbot:
         memory = await self.get_memory_for_channel(str(channel_id))
 
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
-        chat_participants = await self.get_chat_participants_for_channel(channel_id, name)
+        chat_participants = await self.get_chat_participants_for_channel(
+            channel_id, name
+        )
         print(
-            f"chat participants: {chat_participants}\n total chat participants: {len(chat_participants)}")
+            f"chat participants: {chat_participants}\n total chat participants: {len(chat_participants)}"
+        )
         print(f"stop sequences: {stop_sequence}")
         formatted_message = f"{name}: {message_content}"
         system_message = await self.generate_system_message()
         with open("prompt.txt", "r", encoding="utf-8") as f:
             prompt = f.read()
         top_template = prompt.format(
-            BOTNAME=self.char_name,
-            system_message=system_message
+            BOTNAME=self.char_name, system_message=system_message
         )
         bottom_template = """
-<END OF CONVERSATION>
-
-<START OF CONVERSATION>
 {{history}}
 {memory_context}
-
-### Instruction:
 {{input}}
-
-### Response:
-{BOTNAME}:*"""
+{BOTNAME}:"""
 
         MAIN_TEMPLATE = top_template + bottom_template.format(
-            memory_context=memory_context,
-            BOTNAME=self.char_name
+            memory_context=memory_context, BOTNAME=self.char_name
         )
 
         PROMPT = PromptTemplate(
@@ -238,7 +290,7 @@ class Chatbot:
 
         response = await self.detect_and_replace_out(response_text["response"])
 
-        return f"*{response}"
+        return response
 
     # this command receives a name, channel_id, and message_content then adds it to history
     async def add_history(self, name, channel_id, message_content) -> None:
@@ -317,15 +369,15 @@ Tensor: Got the intel, AusBoss! 👀📚 The Legend of Zelda: Breath of the Wild
 
         return response.strip()
 
-#     async def generate_instruct(self, instruction) -> None:
-#         prompt = f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
+    #     async def generate_instruct(self, instruction) -> None:
+    #         prompt = f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
-# ### Instruction:
-# {instruction}
+    # ### Instruction:
+    # {instruction}
 
-# ### Response:"""
-#         response = self.llm(prompt)
-#         return response
+    # ### Response:"""
+    #         response = self.llm(prompt)
+    #         return response
     async def generate_instruct(self, instruction) -> None:
         prompt = f"""Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
 
@@ -353,7 +405,6 @@ Tensor: Got the intel, AusBoss! 👀📚 The Legend of Zelda: Breath of the Wild
 
 
 class ChatbotCog(commands.Cog, name="chatbot"):
-
     def __init__(self, bot):
         self.bot = bot
         self.chatlog_dir = bot.chatlog_dir
@@ -370,8 +421,10 @@ class ChatbotCog(commands.Cog, name="chatbot"):
 
         # Define suffixes and the associated functions
         suffix_functions = {
-            '--searchweb': self.bot.get_cog("agent_commands").execute_search_message,
-            '--calculator': self.bot.get_cog("agent_commands").execute_calculation_message,
+            "--searchweb": self.bot.get_cog("agent_commands").execute_search_message,
+            "--calculator": self.bot.get_cog(
+                "agent_commands"
+            ).execute_calculation_message,
             # '--othersuffix': self.other_function,
             # Add more suffix-function pairs as needed
         }
@@ -386,7 +439,9 @@ class ChatbotCog(commands.Cog, name="chatbot"):
                 break
         else:
             # If no suffix match, proceed with the normal chat handling
-            response = await self.chatbot.generate_response(name, channel_id, message_content, message)
+            response = await self.chatbot.generate_response(
+                name, channel_id, message_content, message
+            )
         self.bot.sent_last_message[str(channel_id)] = True
         return response
 
@@ -446,7 +501,7 @@ class ChatbotCog(commands.Cog, name="chatbot"):
             response = await self.chatbot.force_generate_response(channel_id)
 
         # If the response is more than 2000 characters, split it
-        chunks = [response[i:i + 1998] for i in range(0, len(response), 1998)]
+        chunks = [response[i : i + 1998] for i in range(0, len(response), 1998)]
         for chunk in chunks:
             print(chunk)
             await interaction.channel.send(response)
