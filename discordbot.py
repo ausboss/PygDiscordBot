@@ -6,7 +6,8 @@ from PIL import Image
 from pathlib import Path
 import base64
 from helpers.textgen import TextGen
-from langchain.llms import KoboldApiLLM, OpenAI
+from helpers.koboldai import KoboldApiLLM
+from langchain.llms import OpenAI
 from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Bot
