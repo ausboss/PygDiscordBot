@@ -244,6 +244,11 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         if self.current_task is not None and not self.current_task.done():
             # Cancelling previous task, add last message to the history
             await self.chatbot.add_history(name, str(channel_id), self.last_message)
+
+            # If the llm type is "koboldai", stop the generation from the API
+            if self.bot.llm._llm_type == "koboldai":
+                await self.bot.llm._stop()
+
             self.current_task.cancel()
 
         # Create new task and store in current_task

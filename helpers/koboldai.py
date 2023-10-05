@@ -212,6 +212,7 @@ class KoboldApiLLM(LLM):
                 f"Unexpected response format from Kobold API:  {json_response}"
             )
     
+    # New function to call KoboldAI API asynchronously
     async def _acall(
         self,
         prompt: str,
@@ -262,3 +263,17 @@ class KoboldApiLLM(LLM):
                     raise ValueError(
                         f"Unexpected response format from Kobold API:  {json_response}"
                     )
+
+    async def _stop(self):
+        """Send abort request to stop ongoing AI generation.
+        This only applies to koboldcpp. Official KoboldAI API does not support this.
+        """
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f"{clean_url(self.endpoint)}/api/extra/abort") as response:
+                    if response.status == 200:
+                        print("Successfully aborted AI generation.")
+
+        except Exception as e:
+            print(f"Error aborting AI generation: {e}")
