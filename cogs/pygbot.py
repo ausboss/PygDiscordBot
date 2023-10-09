@@ -212,8 +212,8 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         self.chatbot = Chatbot(bot)
 
         # Store current task and last message here
-        self.current_task = None
-        self.last_message = None
+        self.current_tasks = {}
+        self.last_messages = {}
 
         # create chatlog directory if it doesn't exist
         if not os.path.exists(self.chatlog_dir):
@@ -239,23 +239,27 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         ):
             await self.chatbot.set_convo_filename(chatlog_filename)
         
-        # Check if the task is still running
-        #print(f"The current task is: {self.current_task}") # for debugging purposes
-        if self.current_task is not None and not self.current_task.done():
-            # Cancelling previous task, add last message to the history
-            await self.chatbot.add_history(name, str(channel_id), self.last_message)
+        # Check if the task is still running by channel ID
+        #print(f"The current task is: {self.current_tasks[channel_id]}") # for debugging purposes
+        if channel_id in self.current_tasks:
+            task = self.current_tasks[channel_id]
+            
+            if task is not None and not task.done():
+                # Cancelling previous task, add last message to the history
+                await self.chatbot.add_history(name, str(channel_id), self.last_messages[channel_id])
 
-            # If the llm type is "koboldai", stop the generation from the API
-            if self.bot.llm._llm_type == "koboldai":
-                await self.bot.llm._stop()
+                # If the endpoint is koboldcpp, stop the generation
+                if self.bot.koboldcpp_version >= 1.29:
+                    await self.bot.llm._stop()
 
-            self.current_task.cancel()
+                self.current_task.cancel()
 
-        # Create new task and store in current_task
-        self.last_message = message_content
-        self.current_task = asyncio.create_task(self.chatbot.generate_response(message, message_content))
+        # Create a new task and last message bounded to the channel ID
+        self.last_messages[channel_id] = message_content
+        self.current_tasks[channel_id] = asyncio.create_task(self.chatbot.generate_response(message, message_content))
+
         try:
-            response = await self.current_task
+            response = await self.current_tasks[channel_id]
             return response
         except asyncio.CancelledError:
             print(f"Cancelled {self.chatbot.char_name}'s current response, regenerate another reply...")

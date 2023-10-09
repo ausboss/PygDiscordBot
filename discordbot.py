@@ -240,6 +240,12 @@ async def on_ready():
                 "\n\n\n\nERROR: Unable to retrieve channel from .env \nPlease make sure you're using a valid channel ID, not a server ID."
             )
 
+    # Check if the endpoint is connected to koboldcpp
+    if bot.llm._llm_type == "koboldai":
+        bot.koboldcpp_version = bot.llm.check_version()
+    else:
+        bot.koboldcpp_version = 0.0
+
 
 # COG LOADER
 async def load_cogs() -> None:

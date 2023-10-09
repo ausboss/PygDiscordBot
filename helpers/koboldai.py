@@ -264,6 +264,18 @@ class KoboldApiLLM(LLM):
                         f"Unexpected response format from Kobold API:  {json_response}"
                     )
 
+    def check_version(self) -> float:
+        """Check the version of the koboldcpp API. To distinguish between KoboldAI and koboldcpp"""
+        try:
+            response = requests.get(f"{clean_url(self.endpoint)}/api/extra/version")
+            response.raise_for_status()
+            json_response = response.json()
+            print("The endpoint is running koboldcpp instead of KoboldAI. Stop generation is supported.")
+            return float(json_response["version"])
+        except Exception as e:
+            print("The endpoint is running KoboldAI instead of koboldcpp. Stop generation is not supported.")
+            return 0.0
+
     async def _stop(self):
         """Send abort request to stop ongoing AI generation.
         This only applies to koboldcpp. Official KoboldAI API does not support this.
@@ -272,7 +284,7 @@ class KoboldApiLLM(LLM):
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(f"{clean_url(self.endpoint)}/api/extra/abort") as response:
-                    if response.status == 200:
+                    if response.status == 200 and response.json()["success"] == True:
                         print("Successfully aborted AI generation.")
 
         except Exception as e:
