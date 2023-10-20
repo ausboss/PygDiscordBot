@@ -6,7 +6,8 @@ from PIL import Image
 from pathlib import Path
 import base64
 from helpers.textgen import TextGen
-from langchain.llms import KoboldApiLLM, OpenAI
+from helpers.koboldai import KoboldApiLLM
+from langchain.llms import OpenAI
 from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Bot
@@ -236,6 +237,13 @@ async def on_ready():
             print(
                 "\n\n\n\nERROR: Unable to retrieve channel from .env \nPlease make sure you're using a valid channel ID, not a server ID."
             )
+
+    # Check if the endpoint is connected to koboldcpp
+    if bot.llm._llm_type == "koboldai":
+        bot.koboldcpp_version = bot.llm.check_version()
+        print(f"KoboldCPP Version: {bot.koboldcpp_version}")
+    else:
+        bot.koboldcpp_version = 0.0
 
 
 # COG LOADER

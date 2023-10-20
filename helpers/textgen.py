@@ -3,8 +3,13 @@ import logging
 from typing import Any, Dict, Iterator, List, Optional
 
 import requests
+import asyncio
+import aiohttp
 
-from langchain.callbacks.manager import CallbackManagerForLLMRun
+from langchain.callbacks.manager import  (
+    AsyncCallbackManagerForLLMRun,
+    CallbackManagerForLLMRun,
+)
 from langchain.llms.base import LLM
 from langchain.pydantic_v1 import Field
 from langchain.schema.output import GenerationChunk
@@ -217,7 +222,7 @@ class TextGen(LLM):
             print(params["stopping_strings"])  # TODO: Remove this line
             request = params.copy()
             request["prompt"] = prompt
-            print(request)  # TODO: Remove this line
+            #print(request)  # TODO: Remove this line
             response = requests.post(url, json=request)
 
             if response.status_code == 200:
@@ -226,6 +231,59 @@ class TextGen(LLM):
             else:
                 print(f"ERROR: response: {response}")
                 result = ""
+
+        return result
+
+    # Implement _acall function from LangChain example github
+    async def _acall(
+        self,
+        prompt: str,
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[AsyncCallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> str:
+        """Call the textgen web API and return the output.
+
+        Args:
+            prompt: The prompt to use for generation.
+            stop: A list of strings to stop generation when encountered.
+
+        Returns:
+            The generated text.
+
+        Example:
+            .. code-block:: python
+
+                from langchain.llms import TextGen
+                llm = TextGen(model_url="http://localhost:5000")
+                llm("Write a story about llamas.")
+        """
+        if self.streaming:
+            combined_text_output = ""
+            async for chunk in self._astream(
+                prompt=prompt, stop=stop, run_manager=run_manager, **kwargs
+            ):
+                combined_text_output += chunk.text
+            result = combined_text_output
+
+        else:
+            # Use aiohttp to call textgen API asynchronously to prevent blocking
+            async with aiohttp.ClientSession() as session:
+                url = f"{self.model_url}/api/v1/generate"
+                params = self._get_parameters(stop)
+                params["stopping_strings"] = params.pop(
+                    "stop"
+                )  # Rename 'stop' to 'stopping_strings'
+                request = params.copy()
+                request["prompt"] = prompt
+                #response = requests.post(url, json=request)
+
+                async with session.post(url, json=request) as response:
+                    if response.status == 200:
+                        result = (await response.json())["results"][0]["text"]
+                    else:
+                        print(f"ERROR: response: {response}")
+                        result = ""
 
         return result
 

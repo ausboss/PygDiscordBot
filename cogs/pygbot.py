@@ -9,6 +9,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import os
+import asyncio
 
 
 # load environment STOP_SEQUENCES variables and split them into a list by comma
@@ -127,7 +128,7 @@ class Chatbot:
                 name = message[0]
                 channel_ids = str(message[1])
                 message = message[2]
-                print(f"{name}: {message}")
+                #print(f"{name}: {message}")
                 await self.add_history(name, channel_ids, message)
 
         # self.memory = self.histories[channel_id]
@@ -160,7 +161,7 @@ class Chatbot:
         name = message.author.display_name
         memory = await self.get_memory_for_channel(str(channel_id))
         stop_sequence = await self.get_stop_sequence_for_channel(channel_id, name)
-        print(f"stop sequences: {stop_sequence}")
+        #print(f"stop sequences: {stop_sequence}")
         formatted_message = f"{name}: {message_content}"
         MAIN_TEMPLATE = f"""
 {self.top_character_info}
@@ -180,7 +181,13 @@ class Chatbot:
             memory=memory,
         )
         input_dict = {"input": formatted_message, "stop": stop_sequence}
-        response_text = conversation(input_dict)
+
+        # Run the conversation chain
+        if self.bot.koboldcpp_version >= 1.29:
+            response_text = await conversation.acall(input_dict,channel_id)
+        else:
+            response_text = await conversation.acall(input_dict)
+
         response = await self.detect_and_replace_out(response_text["response"])
         with open(self.convo_filename, "a", encoding="utf-8") as f:
             f.write(f"{message.author.display_name}: {message_content}\n")
@@ -199,7 +206,7 @@ class Chatbot:
         formatted_message = f"{name}: {message_content}"
 
         # add the message to the memory
-        print(f"adding message to memory: {formatted_message}")
+        #print(f"adding message to memory: {formatted_message}")
         memory.add_input_only(formatted_message)
         return None
 
@@ -209,6 +216,10 @@ class ChatbotCog(commands.Cog, name="chatbot"):
         self.bot = bot
         self.chatlog_dir = bot.chatlog_dir
         self.chatbot = Chatbot(bot)
+
+        # Store current task and last message here
+        self.current_tasks = {}
+        self.last_messages = {}
 
         # create chatlog directory if it doesn't exist
         if not os.path.exists(self.chatlog_dir):
@@ -233,8 +244,32 @@ class ChatbotCog(commands.Cog, name="chatbot"):
             and self.chatbot.convo_filename != chatlog_filename
         ):
             await self.chatbot.set_convo_filename(chatlog_filename)
-        response = await self.chatbot.generate_response(message, message_content)
-        return response
+        
+        # Check if the task is still running by channel ID
+        #print(f"The current task is: {self.current_tasks[channel_id]}") # for debugging purposes
+        if channel_id in self.current_tasks:
+            task = self.current_tasks[channel_id]
+            
+            if task is not None and not task.done():
+                # Cancelling previous task, add last message to the history
+                await self.chatbot.add_history(name, str(channel_id), self.last_messages[channel_id])
+
+                # If the endpoint is koboldcpp, stop the generation by channel ID
+                if self.bot.koboldcpp_version >= 1.29:
+                    await self.bot.llm._stop(channel_id)
+
+                self.current_task.cancel()
+
+        # Create a new task and last message bounded to the channel ID
+        self.last_messages[channel_id] = message_content
+        self.current_tasks[channel_id] = asyncio.create_task(self.chatbot.generate_response(message, message_content))
+
+        try:
+            response = await self.current_tasks[channel_id]
+            return response
+        except asyncio.CancelledError:
+            print(f"Cancelled {self.chatbot.char_name}'s current response, regenerate another reply...")
+            return None
     
     # No Response Handler
     @commands.command(name="chatnr")
