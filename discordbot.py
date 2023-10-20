@@ -243,10 +243,9 @@ async def on_ready():
     # Check if the endpoint is connected to koboldcpp
     if bot.llm._llm_type == "koboldai":
         bot.koboldcpp_version = bot.llm.check_version()
+        print(f"KoboldCPP Version: {bot.koboldcpp_version}")
     else:
         bot.koboldcpp_version = 0.0
-
-    print(f"KoboldCPP Version: {bot.koboldcpp_version}")
 
 
 # COG LOADER
