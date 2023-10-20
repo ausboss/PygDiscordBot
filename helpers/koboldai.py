@@ -5,6 +5,9 @@ import requests
 import asyncio
 import aiohttp
 
+import random
+import string
+
 from langchain.callbacks.manager import  (
     AsyncCallbackManagerForLLMRun,
     CallbackManagerForLLMRun,
@@ -12,7 +15,6 @@ from langchain.callbacks.manager import  (
 from langchain.llms.base import LLM
 
 logger = logging.getLogger(__name__)
-
 
 def clean_url(url: str) -> str:
     """Remove trailing slash and /api from url if present."""
@@ -127,6 +129,10 @@ class KoboldApiLLM(LLM):
     minimum: 0
     """
 
+    # To store genkeys for each generation
+    genkeys = {}
+    is_koboldcpp = False
+
     @property
     def _llm_type(self) -> str:
         return "koboldai"
@@ -218,6 +224,7 @@ class KoboldApiLLM(LLM):
         prompt: str,
         stop: Optional[List[str]] = None,
         run_manager: Optional[AsyncCallbackManagerForLLMRun] = None,
+        channel_id: Optional[str] = None,
         **kwargs: Any,
     ) -> str:
         """Call the API and return the output.
@@ -237,7 +244,19 @@ class KoboldApiLLM(LLM):
                 llm = KoboldApiLLM(endpoint="http://localhost:5000")
                 llm("Write a story about dragons.")
         """
-        data = self._get_parameters(prompt, stop)
+        if self.is_koboldcpp:
+            # Generate a random 10 character genkey
+            genkey = "".join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            print(f"genkey: {genkey}")
+
+            # Store genkeys to dict mapped to channel ID
+            self.genkeys[channel_id] = genkey
+            data = self._get_parameters(prompt, stop)
+            data["genkey"] = genkey
+
+        else:
+            # Normal for KoboldAI, genkey is not required
+            data = self._get_parameters(prompt, stop)
 
          # Use aiohttp to call KoboldAI API asynchronously to prevent blocking
         async with aiohttp.ClientSession() as session:
@@ -270,22 +289,39 @@ class KoboldApiLLM(LLM):
             response = requests.get(f"{clean_url(self.endpoint)}/api/extra/version")
             response.raise_for_status()
             json_response = response.json()
-            print("The endpoint is running koboldcpp instead of KoboldAI. Stop generation is supported.")
+            self.is_koboldcpp = True
+            print("The endpoint is running koboldcpp instead of KoboldAI. If you use multiple channel IDs, please pass '--multiuser' to koboldcpp.")
             return float(json_response["version"])
-        except Exception as e:
-            print("The endpoint is running KoboldAI instead of koboldcpp. Stop generation is not supported.")
-            return 0.0
+        except:
+            # Try fetching KoboldAI version
+            try:
+                response = requests.get(f"{clean_url(self.endpoint)}/api/v1/version")
+                response.raise_for_status()
+                json_response = response.json()
+                self.is_koboldcpp = False
+                print("The endpoint is running KoboldAI instead of koboldcpp.")
+                return 0.0
+            except:
+                raise ValueError("The endpoint is not running KoboldAI or koboldcpp.")
 
-    async def _stop(self):
+
+    async def _stop(self, channel_id):
         """Send abort request to stop ongoing AI generation.
         This only applies to koboldcpp. Official KoboldAI API does not support this.
         """
+
+        # Check genkey before cancelling
+        if channel_id in self.genkeys:
+            genkey = self.genkeys[channel_id]
+
+            json = {"genkey": genkey}
         
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(f"{clean_url(self.endpoint)}/api/extra/abort") as response:
-                    if response.status == 200 and response.json()["success"] == True:
-                        print("Successfully aborted AI generation.")
+            response = requests.post(f"{clean_url(self.endpoint)}/api/extra/abort", json=json)
+            if response.status_code == 200 and response.json()["success"] == True:
+                print(f"Successfully aborted AI generation for channel ID of {channel_id}, with genkey: {genkey}")
+            else:
+                print("Error aborting AI generation.")
 
         except Exception as e:
             print(f"Error aborting AI generation: {e}")

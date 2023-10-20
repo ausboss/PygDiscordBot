@@ -246,6 +246,8 @@ async def on_ready():
     else:
         bot.koboldcpp_version = 0.0
 
+    print(f"KoboldCPP Version: {bot.koboldcpp_version}")
+
 
 # COG LOADER
 async def load_cogs() -> None:

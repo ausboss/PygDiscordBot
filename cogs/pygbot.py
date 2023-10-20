@@ -181,7 +181,13 @@ class Chatbot:
             memory=memory,
         )
         input_dict = {"input": formatted_message, "stop": stop_sequence}
-        response_text = await conversation.acall(input_dict)
+
+        # Run the conversation chain
+        if self.bot.koboldcpp_version >= 1.29:
+            response_text = await conversation.acall(input_dict,channel_id)
+        else:
+            response_text = await conversation.acall(input_dict)
+
         response = await self.detect_and_replace_out(response_text["response"])
         with open(self.convo_filename, "a", encoding="utf-8") as f:
             f.write(f"{message.author.display_name}: {message_content}\n")
@@ -248,9 +254,9 @@ class ChatbotCog(commands.Cog, name="chatbot"):
                 # Cancelling previous task, add last message to the history
                 await self.chatbot.add_history(name, str(channel_id), self.last_messages[channel_id])
 
-                # If the endpoint is koboldcpp, stop the generation
+                # If the endpoint is koboldcpp, stop the generation by channel ID
                 if self.bot.koboldcpp_version >= 1.29:
-                    await self.bot.llm._stop()
+                    await self.bot.llm._stop(channel_id)
 
                 self.current_task.cancel()
 
