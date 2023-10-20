@@ -1,13 +1,13 @@
 # update
 apparently people still use this. I appreciate that so I will start improving the main repo again. I added a few changes. 
 
--added max tokens to env, for kobold the max is 512, so dont go over that or you will get an error
+- added max tokens to env, for kobold the max is 512, so dont go over that or you will get an error
 
--There is now stop token support. Update your .envs based on the new sample env. just list words that you dont want to see the bot say divided by , 
+- There is now stop token support. Update your .envs based on the new sample env. just list words that you dont want to see the bot say divided by , 
 
--bot will now say your display name and not your username
+- bot will now say your display name and not your username
 
--i modified the endpoint and conversation history to use langchain and soon i will add oobabooga support. i just need to add a line to detect what api you put as the endpoint. (ADDED)
+- i modified the endpoint and conversation history to use langchain and soon i will add oobabooga support. i just need to add a line to detect what api you put as the endpoint. (ADDED)
 
 -more to come soon..
 
