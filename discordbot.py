@@ -13,11 +13,12 @@ from discord.ext.commands import Bot, Context
 from dotenv import load_dotenv
 import aiosqlite
 from helpers import db_manager
+from helpers.textgen import TextGen
 
 from langchain.chat_models import ChatOpenAI
 # from langchain.llms import KoboldApiLLM
 from koboldllm import KoboldApiLLM2
-from langchain.llms import TextGen
+# from langchain.llms import TextGen
 
 # assuming exceptions is a custom module, otherwise remove this
 import exceptions
@@ -58,14 +59,14 @@ else:
 
 bot.llm = ""
 
-# Create an instance of the LLM class according to the endpoint that is available
-if bot.llm_name == 'kobold':
-    bot.llm = KoboldApiLLM2(endpoint=bot.endpoint)
-elif bot.llm_name == 'ooba':
-    bot.llm = TextGen(model_url=bot.endpoint, max_new_tokens=2000)
-elif bot.llm_name == 'openai':
-    bot.llm = ChatOpenAI(model_name="gpt-4", temperature=0.7)
-
+# # Create an instance of the LLM class according to the endpoint that is available
+# if bot.llm_name == 'kobold':
+#     bot.llm = KoboldApiLLM2(endpoint=bot.endpoint)
+# elif bot.llm_name == 'ooba':
+#     bot.llm = TextGen(model_url=bot.endpoint, max_new_tokens=2000)
+# elif bot.llm_name == 'openai':
+#     bot.llm = ChatOpenAI(model_name="gpt-4", temperature=0.7)
+bot.llm = TextGen(model_url=bot.endpoint, preset="Midnight Enigma", max_new_tokens=2000)
 bot.openai = OPENAI
 
 if len(bot.endpoint.split("/api")) > 0:
